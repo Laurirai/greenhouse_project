@@ -1,4 +1,10 @@
-add_executable(${ProjectName}
+cmake_minimum_required(VERSION 3.13)
+project(greenhouse_project)
+
+message(STATUS "PICO_SDK_PATH: $ENV{PICO_SDK_PATH}")
+message(STATUS "SDK import file exists: ${PICO_SDK_PATH}")
+
+add_executable(greenhouse_project
         main.cpp
         critical_section.cpp
         Fmutex.cpp
@@ -6,8 +12,8 @@ add_executable(${ProjectName}
         blinker.cpp
         blinker.h
 
-#        ipstack/IPStack.cpp
-#        ipstack/IPStack.h
+        #        ipstack/IPStack.cpp
+        #        ipstack/IPStack.h
         ipstack/lwipopts.h
         ipstack/tls_common.c
         ipstack/picow_tls_client.c
@@ -30,14 +36,15 @@ add_executable(${ProjectName}
         display/framebuf.h
         display/mono_vlsb.cpp
         display/mono_vlsb.h
-#        display/ssd1306.cpp
-#        display/ssd1306.h
+        #        display/ssd1306.cpp
+        #        display/ssd1306.h
         display/ssd1306os.h
         display/ssd1306os.cpp
+        main.cpp
 )
 
-target_include_directories(${ProjectName} PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}
+target_include_directories(greenhouse_project PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}
         modbus
         uart
         i2c
@@ -45,21 +52,20 @@ target_include_directories(${ProjectName} PRIVATE
         ipstack
 )
 
-target_compile_definitions(${ProjectName} PRIVATE
-        WIFI_SSID=\"$ENV{WIFI_SSID}\"
-        WIFI_PASSWORD=\"$ENV{WIFI_PASSWORD}\"
-        NO_SYS=0            # don't want NO_SYS (generally this would be in your lwipopts.h)
+target_compile_definitions(greenhouse_project PRIVATE
+        WIFI_SSID="$ENV{WIFI_SSID}"
+        WIFI_PASSWORD="$ENV{WIFI_PASSWORD}"
+        NO_SYS=0
         PICO_CYW43_ARCH_DEFAULT_COUNTRY_CODE=CYW43_COUNTRY_FINLAND
 )
 
-target_link_libraries(${ProjectName} 
+target_link_libraries(greenhouse_project
         pico_stdlib
         hardware_i2c
         FreeRTOS-Kernel-Heap4
         pico_cyw43_arch_lwip_sys_freertos
         pico_lwip_mbedtls
         pico_mbedtls
-
 )
 
 # Ignore warnings from lwip code
@@ -69,8 +75,8 @@ set_source_files_properties(
         COMPILE_OPTIONS "-Wno-unused-result"
 )
 
-pico_add_extra_outputs(${ProjectName})
+pico_add_extra_outputs(greenhouse_project)
 
 # Disable usb output, enable uart output
-pico_enable_stdio_usb(${PROJECT_NAME} 0)
-pico_enable_stdio_uart(${PROJECT_NAME} 1)
+pico_enable_stdio_usb(greenhouse_project 0)
+pico_enable_stdio_uart(greenhouse_project 1)

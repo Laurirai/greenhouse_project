@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_C_STANDARD 17)
 
 # Name project
-SET(ProjectName rp2040-freertos-irq)
+SET(ProjectName greenhouse_project)
 
 # Set any variables required for importing libraries
 SET(FREERTOS_KERNEL_PATH ${CMAKE_CURRENT_SOURCE_DIR}/FreeRTOS-KernelV10.6.2)
@@ -15,6 +15,7 @@ SET(FREERTOS_KERNEL_PATH ${CMAKE_CURRENT_SOURCE_DIR}/FreeRTOS-KernelV10.6.2)
 # Import those libraries
 include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 include(${FREERTOS_KERNEL_PATH}/portable/ThirdParty/GCC/RP2040/FreeRTOS_Kernel_import.cmake)
+#message(STATUS "PICO_SDK_PATH is: $ENV{PICO_SDK_PATH}")
 
 # Define project
 project(${ProjectName})
