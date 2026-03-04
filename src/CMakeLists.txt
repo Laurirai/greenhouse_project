@@ -9,8 +9,6 @@ add_executable(greenhouse_project
         critical_section.cpp
         Fmutex.cpp
         Fmutex.h
-        blinker.cpp
-        blinker.h
 
         #        ipstack/IPStack.cpp
         #        ipstack/IPStack.h
@@ -41,6 +39,8 @@ add_executable(greenhouse_project
         display/ssd1306os.h
         display/ssd1306os.cpp
         main.cpp
+        SensorTask.cpp
+        SensorTask.h
 )
 
 target_include_directories(greenhouse_project PRIVATE
