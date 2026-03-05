@@ -1,8 +1,8 @@
 //
 // Created by Keijo Länsikunnas on 30.8.2024.
 //
-#include "FreeRTOS.h"
-#include "task.h"
+#include "../FreeRTOS-KernelV10.6.2/include/FreeRTOS.h"
+#include "../FreeRTOS-KernelV10.6.2/include/task.h"
 
 class CriticalSection {
 public:
