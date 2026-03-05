@@ -41,6 +41,8 @@ add_executable(greenhouse_project
         main.cpp
         SensorTask.cpp
         SensorTask.h
+        UITask.h
+        UITask.cpp
 )
 
 target_include_directories(greenhouse_project PRIVATE
