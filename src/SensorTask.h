@@ -3,16 +3,22 @@
 
 #include <memory>
 #include "FreeRTOS.h"
-#include "task.h"
 #include "queue.h"
 #include "ModbusClient.h"
 #include "ModbusRegister.h"
 #include "PicoOsUart.h"
+#include "pressure_sensor/PressureSensor.h"
+#include "PicoI2C.h"
+#include "task.h"
+#include "queue.h"
+
+
 
 struct SensorData {
     float co2_ppm;
     float rh;
     float temp;
+    float pressure;
 };
 
 class SensorTask {
@@ -24,6 +30,8 @@ private:
     void run();
 
     QueueHandle_t uiQueue;
+    std::shared_ptr<PicoI2C> i2c;
+    std::unique_ptr<PressureSensor> pressure_sensor;
     std::shared_ptr<PicoOsUart> uart;
     std::shared_ptr<ModbusClient> modbus;
     std::unique_ptr<ModbusRegister> co2_reg;
