@@ -5,6 +5,7 @@
 #include "hardware/timer.h"
 #include "SensorTask.h"
 #include "UITask.h"
+#include "inputs/InputHandler.h"
 
 extern "C" {
     uint32_t read_runtime_ctr(void) {
@@ -20,7 +21,8 @@ int main() {
     uiQueue = xQueueCreate(5, sizeof(SensorData));
 
     static SensorTask sensorTask(uiQueue);
-    static UITask uiTask(uiQueue);
+    static InputHandler inputHandler;
+    static UITask uiTask(uiQueue, inputHandler.getQueue());
 
     sensorTask.start();
     uiTask.start();

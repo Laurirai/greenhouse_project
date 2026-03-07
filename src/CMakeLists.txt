@@ -45,6 +45,8 @@ add_executable(greenhouse_project
         UITask.cpp
         pressure_sensor/PressureSensor.cpp
         pressure_sensor/PressureSensor.h
+        inputs/InputHandler.cpp
+        inputs/InputHandler.h
 )
 
 target_include_directories(greenhouse_project PRIVATE

@@ -11,13 +11,14 @@
 
 class UITask {
 public:
-    explicit UITask(QueueHandle_t uiQueue);
+    explicit UITask(QueueHandle_t uiQueue, QueueHandle_t inputQueue);
     void start();
 private:
     static void taskFunction(void* param);
     void run();
 
     QueueHandle_t uiQueue;
+    QueueHandle_t inputQueue;
     std::shared_ptr<PicoI2C> i2c;
     std::unique_ptr<ssd1306os> display;
 };
