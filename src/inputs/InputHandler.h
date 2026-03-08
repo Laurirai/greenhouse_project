@@ -35,6 +35,7 @@ private:
     uint32_t last_sw1 = 0;
     uint32_t last_sw2 = 0;
     uint32_t last_enc_sw = 0;
+    uint32_t last_turn = 0;
 };
 
 #endif

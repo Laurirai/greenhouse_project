@@ -64,12 +64,13 @@ void InputHandler::handleGpio(uint gpio, uint32_t events) {
         xQueueSendToBackFromISR(eventQueue, &ev, &xHigherPriorityTaskWoken);
     }
     else if (gpio == ROT_A_PIN) {
-        // read B to determine direction
-        ev = (gpio_get(ROT_B_PIN) == 0) ? ENC_UP : ENC_DOWN;
+        if (now - last_turn < 5) return;  // 5ms is enough for encoder
+        last_turn = now;
+        ev = (gpio_get(ROT_B_PIN) == 0) ? ENC_DOWN : ENC_UP;
         xQueueSendToBackFromISR(eventQueue, &ev, &xHigherPriorityTaskWoken);
     }
     else if (gpio == ROT_SW_PIN) {
-        if (now - last_enc_sw < DEBOUNCE_MS) return;
+        if (now - last_enc_sw < DEBOUNCE_MS + 50) return;
         last_enc_sw = now;
         ev = ENC_PRESS;
         xQueueSendToBackFromISR(eventQueue, &ev, &xHigherPriorityTaskWoken);

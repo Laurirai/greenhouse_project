@@ -47,6 +47,8 @@ add_executable(greenhouse_project
         pressure_sensor/PressureSensor.h
         inputs/InputHandler.cpp
         inputs/InputHandler.h
+        simulator/SimulatorTask.cpp
+        simulator/SimulatorTask.h
 )
 
 target_include_directories(greenhouse_project PRIVATE
