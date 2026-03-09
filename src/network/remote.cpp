@@ -178,7 +178,7 @@ void RemoteController::forwardCO2Set(uint32_t co2_value) {
         printf("Failed to send CO2SET message to queue.\n");
         return;
     }
-
+    co2_setpoint = co2_value;
     printf("Sent CO2SET message to queue with value: %u\n", co2_value);
 }
 

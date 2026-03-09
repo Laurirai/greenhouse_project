@@ -25,7 +25,6 @@ void UITask::run() {
     bool needs_redraw = true;
 
     int main_selected = 0;
-    uint32_t co2_setpoint = 0;
     if (eeprom.loadCO2Setpoint(co2_setpoint)) {
         printf("Loaded co2 from eeprom with value: %u\n");
         if (co2_setpoint >= MIN_CO2_SET && co2_setpoint <= MAX_CO2_SET) {

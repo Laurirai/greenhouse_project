@@ -29,6 +29,8 @@ struct networkConfig {
     char password[64] = {0};
 };
 
+inline uint32_t co2_setpoint = 0;
+
 enum messageType {
     SENSOR_DATA,
     NETWORK_CONFIG,
