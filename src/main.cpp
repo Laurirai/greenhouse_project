@@ -47,18 +47,18 @@ int main() {
 
     // Optional bootstrap credentials for testing.
     // Comment this block out if you want EEPROM-only startup.
-    // message msg{};
-    // msg.type = NETWORK_CONFIG;
-    // strncpy(msg.network_config.ssid, "DNA-WIFI-1878", sizeof(msg.network_config.ssid) - 1);
-    // strncpy(msg.network_config.password, "X4xfLfRY1xwQGC", sizeof(msg.network_config.password) - 1);
-    // msg.network_config.ssid[sizeof(msg.network_config.ssid) - 1] = '\0';
-    // msg.network_config.password[sizeof(msg.network_config.password) - 1] = '\0';
-    // xQueueSendToBack(receive_queue, &msg, pdMS_TO_TICKS(10));
+    message msg{};
+    msg.type = NETWORK_CONFIG;
+    strncpy(msg.network_config.ssid, "kelarotta", sizeof(msg.network_config.ssid) - 1);
+    strncpy(msg.network_config.password, "kelarotta123", sizeof(msg.network_config.password) - 1);
+    msg.network_config.ssid[sizeof(msg.network_config.ssid) - 1] = '\0';
+    msg.network_config.password[sizeof(msg.network_config.password) - 1] = '\0';
+    xQueueSendToBack(receive_queue, &msg, pdMS_TO_TICKS(10));
     uiQueue = xQueueCreate(5, sizeof(SensorData));
 
     static SensorTask sensorTask(uiQueue);
     static InputHandler inputHandler;
-    static UITask uiTask(uiQueue, inputHandler.getQueue());
+    static UITask uiTask(uiQueue, inputHandler.getQueue(), eeprom);
 
     sensorTask.start();
     uiTask.start();
