@@ -1,51 +1,56 @@
-//
-// Created by janie on 04/03/2026.
-//
-#pragma once
 #ifndef REMOTE_H
 #define REMOTE_H
 
-#include "FreeRTOS.h"
-#include "task.h"
-#include "ipstack/IPStack.h"
-#include "queue.h"
+#include "ipstack.h"
+#include "eeprom/eeprom.h"
 #include "structs.h"
+#include "FreeRTOS.h"
+#include "queue.h"
+#define MIN_CO2_SET 200 // min that's accepted from remote
 
+#define MAX_CO2_SET 5000 // max that's accepted from remote
 
 class RemoteController {
 public:
-    RemoteController(const char* ssid_, const char* password_, QueueHandle_t rcq);
+    RemoteController(EEPROMManager &eeprom_, QueueHandle_t rcq, QueueHandle_t co2q);
 
-private:
-    static void taskFunction(void* param);
+    static void taskFunction(void *param);
     void run();
 
-    bool sendData(IPStack &ip_stack,sensorData data);
+private:
+    EEPROMManager &eeprom;
 
-    bool connectCloud(IPStack & ip_stack);
+    QueueHandle_t receive_que{};
+    QueueHandle_t to_co2_queue{};
 
-    void disconnect(IPStack &ip_stack);
     bool cloudConnected = false;
 
-    void readChannel(IPStack &ip_stack);
-    static const int BUFSIZE = 2048;
-    char buffer[BUFSIZE] = {};
-    const char*ssid = nullptr;
-    const char*password = nullptr;
+    static constexpr TickType_t send_period = pdMS_TO_TICKS(DATA_INTERVAL * 1000);
+    static constexpr TickType_t talkback_period = pdMS_TO_TICKS(15000);
+    static constexpr TickType_t reconnect_period = pdMS_TO_TICKS(5000);
 
-    const char* name = "TEST";
+    char ssid[32]{};
+    char password[64]{};
+    char buffer[1024]{};
+
     const char *host = "api.thingspeak.com";
     const int port = 80;
-    const int channel = 3268971;
-    const char *talkback_key = "9BWJRPNQRSGVKPDB";
-    const char *write_api = "6J1VQ3JWJGPNWKZH";
-    const char *read_api = "H9OQ8XDTI7OU4IUW";
+    const char *write_api = "9BWJRPNQRSGVKPDB";
+    const char *talkback_id = "56511";
+    const char *talkback_api = "9BWJRPNQRSGVKPDB";
 
-    // que to receive data from.
-    QueueHandle_t receive_que{};
 
-    const TickType_t period = pdMS_TO_TICKS(DATA_INTERVAL*1000); // in ms
+    bool connectCloud(IPStack &ip_stack);
+    void disconnect(IPStack &ip_stack);
 
+    bool openTCP(IPStack &ip_stack);
+    void closeTCP(IPStack &ip_stack);
+
+    bool readHttpResponse(IPStack &ip_stack);
+    bool sendData(IPStack &ip_stack, const sensorData &data);
+    bool parseTalkBackCommand(const char *body, uint32_t &co2_value);
+    void forwardCO2Set(uint32_t co2_value);
+    bool readTalkBackCO2(IPStack &ip_stack);
 };
-#endif
 
+#endif // REMOTE_H

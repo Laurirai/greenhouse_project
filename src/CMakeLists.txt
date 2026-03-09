@@ -44,6 +44,8 @@ add_executable(greenhouse_project
         network/remote.cpp
         network/remote.h
         structs.h
+        eeprom/eeprom.cpp
+        eeprom/eeprom.h
 )
 
 target_include_directories(greenhouse_project PRIVATE
