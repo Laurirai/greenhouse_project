@@ -8,8 +8,8 @@
 #ifndef FMUTEX_H_
 #define FMUTEX_H_
 
-#include "FreeRTOS.h"
-#include "semphr.h"
+#include "../FreeRTOS-KernelV10.6.2/include/FreeRTOS.h"
+#include "../FreeRTOS-KernelV10.6.2/include/semphr.h"
 
 class Fmutex {
 public:

@@ -10,8 +10,8 @@ add_executable(greenhouse_project
         Fmutex.cpp
         Fmutex.h
 
-        #        ipstack/IPStack.cpp
-        #        ipstack/IPStack.h
+                ipstack/IPStack.cpp
+                ipstack/IPStack.h
         ipstack/lwipopts.h
         ipstack/tls_common.c
         ipstack/picow_tls_client.c
@@ -47,6 +47,11 @@ add_executable(greenhouse_project
         pressure_sensor/PressureSensor.h
         inputs/InputHandler.cpp
         inputs/InputHandler.h
+        network/remote.cpp
+        network/remote.h
+        structs.h
+        eeprom/eeprom.cpp
+        eeprom/eeprom.h
 )
 
 target_include_directories(greenhouse_project PRIVATE
