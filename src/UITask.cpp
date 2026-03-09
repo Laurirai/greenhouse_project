@@ -24,24 +24,16 @@ void UITask::run() {
     char buf[32];
     bool needs_redraw = true;
 
-    // main screen state
-    int main_selected = 0;  // 0 = val, 1 = Id
-
-    // value screen state
-    int val_selected = 0;   // 0 = CO2, 1 = RH, 2 = Temp
-    float co2_setpoint  = 800.0f;
-    float rh_setpoint   = 50.0f;
-    float temp_setpoint = 20.0f;
+    int main_selected = 0;
+    float co2_setpoint = 800.0f;
 
     enum Screen { MAIN, VALUE_SET } current_screen = MAIN;
 
     while (true) {
-        // grab latest sensor data
         if (xQueueReceive(uiQueue, &data, 0) == pdTRUE) {
             needs_redraw = true;
         }
 
-        // handle input
         if (xQueueReceive(inputQueue, &ev, 0) == pdTRUE) {
             needs_redraw = true;
 
@@ -50,23 +42,26 @@ void UITask::run() {
                 if (ev == ENC_UP   && main_selected > 0) main_selected--;
                 if (ev == ENC_PRESS && main_selected == 0) {
                     current_screen = VALUE_SET;
-                    val_selected = 0;
                 }
             }
             else if (current_screen == VALUE_SET) {
-                if (ev == ENC_DOWN && val_selected < 2) val_selected++;
-                if (ev == ENC_UP   && val_selected > 0) val_selected--;
+                // encoder turns adjust co2 target
+                if (ev == ENC_DOWN) co2_setpoint += 10.0f;
+                if (ev == ENC_UP)   co2_setpoint -= 10.0f;
 
-                // SW0 increases, SW2 decreases selected value
-                if (ev == BTN_RIGHT || ev == BTN_LEFT) {
-                    float delta = (ev == BTN_RIGHT) ? 1.0f : -1.0f;
-                    if (val_selected == 0) co2_setpoint  += delta * 10.0f;
-                    if (val_selected == 1) rh_setpoint   += delta;
-                    if (val_selected == 2) temp_setpoint += delta * 0.5f;
+                // clamp to reasonable range
+                if (co2_setpoint < 0.0f)    co2_setpoint = 0.0f;
+                if (co2_setpoint > 5000.0f) co2_setpoint = 5000.0f;
+
+                // encoder press saves and goes back
+                if (ev == ENC_PRESS) {
+                    printf("CO2 target saved: %.0f ppm\n", co2_setpoint);
+                    // EEPROM write will go here
+                    current_screen = MAIN;
                 }
 
-                // encoder press confirms and goes back
-                if (ev == BTN_BACK || ev == ENC_PRESS) {
+                // back button discards and goes back
+                if (ev == BTN_BACK) {
                     current_screen = MAIN;
                 }
             }
@@ -101,20 +96,17 @@ void UITask::run() {
                 display->text(buf, 90, 50);
             }
             else if (current_screen == VALUE_SET) {
-                snprintf(buf, sizeof(buf), "Set the value of:");
+                snprintf(buf, sizeof(buf), "CO2 target:");
                 display->text(buf, 0, 0);
 
-                snprintf(buf, sizeof(buf), "%sCO2  <%.0f>",  val_selected == 0 ? "*" : " ", co2_setpoint);
-                display->text(buf, 0, 20);
+                snprintf(buf, sizeof(buf), "%.0f ppm", co2_setpoint);
+                display->text(buf, 20, 25);
 
-                snprintf(buf, sizeof(buf), "%sRH   <%.1f>",  val_selected == 1 ? "*" : " ", rh_setpoint);
-                display->text(buf, 0, 32);
+                snprintf(buf, sizeof(buf), "ENC=adjust");
+                display->text(buf, 0, 45);
 
-                snprintf(buf, sizeof(buf), "%sTemp <%.1f>",  val_selected == 2 ? "*" : " ", temp_setpoint);
-                display->text(buf, 0, 44);
-
-                snprintf(buf, sizeof(buf), "BACK=encoder/SW1");
-                display->text(buf, 0, 56);
+                snprintf(buf, sizeof(buf), "PRESS=save SW1=back");
+                display->text(buf, 0, 55);
             }
 
             display->show();
