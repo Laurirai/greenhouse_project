@@ -6,9 +6,6 @@
 #include "structs.h"
 #include "FreeRTOS.h"
 #include "queue.h"
-#define MIN_CO2_SET 200 // min that's accepted from remote
-
-#define MAX_CO2_SET 5000 // max that's accepted from remote
 
 class RemoteController {
 public:

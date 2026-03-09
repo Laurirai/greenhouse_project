@@ -2,8 +2,8 @@
 #include "inputs/InputHandler.h"
 #include <cstdio>
 
-UITask::UITask(QueueHandle_t uiQueue, QueueHandle_t inputQueue)
-    : uiQueue(uiQueue), inputQueue(inputQueue) {}
+UITask::UITask(QueueHandle_t uiQueue, QueueHandle_t inputQueue, EEPROMManager &eeprom_)
+    : uiQueue(uiQueue), inputQueue(inputQueue), eeprom(eeprom_) {}
 
 void UITask::start() {
     xTaskCreate(taskFunction, "UI", 1024, this, 1, NULL);
@@ -25,7 +25,16 @@ void UITask::run() {
     bool needs_redraw = true;
 
     int main_selected = 0;
-    float co2_setpoint = 800.0f;
+    uint32_t co2_setpoint = 0;
+    if (eeprom.loadCO2Setpoint(co2_setpoint)) {
+        printf("Loaded co2 from eeprom with value: %u\n");
+        if (co2_setpoint >= MIN_CO2_SET && co2_setpoint <= MAX_CO2_SET) {
+            printf("Read saved CO2 setpoint from EEPROM: %u\n", co2_setpoint);
+        } else {
+            printf("Trash CO2 setpoint in EEPROM, setting to default of %u\n", DEFAULT_CO2_SET);
+            co2_setpoint = DEFAULT_CO2_SET;
+        }
+    }
 
     enum Screen { MAIN, VALUE_SET } current_screen = MAIN;
 
@@ -46,17 +55,18 @@ void UITask::run() {
             }
             else if (current_screen == VALUE_SET) {
                 // encoder turns adjust co2 target
-                if (ev == ENC_DOWN) co2_setpoint += 10.0f;
-                if (ev == ENC_UP)   co2_setpoint -= 10.0f;
+                if (ev == ENC_DOWN) co2_setpoint += 10;
+                if (ev == ENC_UP)   co2_setpoint -= 10;
 
                 // clamp to reasonable range
-                if (co2_setpoint < 0.0f)    co2_setpoint = 0.0f;
-                if (co2_setpoint > 5000.0f) co2_setpoint = 5000.0f;
+                if (co2_setpoint < MIN_CO2_SET)    co2_setpoint = MIN_CO2_SET;
+                if (co2_setpoint > MAX_CO2_SET)    co2_setpoint = MAX_CO2_SET;
 
                 // encoder press saves and goes back
                 if (ev == ENC_PRESS) {
-                    printf("CO2 target saved: %.0f ppm\n", co2_setpoint);
+                    printf("CO2 target saved: %.0hu ppm\n", co2_setpoint);
                     // EEPROM write will go here
+                    eeprom.saveCO2Setpoint(co2_setpoint);
                     current_screen = MAIN;
                 }
 
