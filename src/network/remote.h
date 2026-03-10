@@ -32,7 +32,7 @@ private:
 
     const char *host = "api.thingspeak.com";
     const int port = 80;
-    const char *write_api = "9BWJRPNQRSGVKPDB";
+    const char *write_api = "6J1VQ3JWJGPNWKZH";
     const char *talkback_id = "56511";
     const char *talkback_api = "9BWJRPNQRSGVKPDB";
 

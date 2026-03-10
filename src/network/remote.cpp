@@ -93,8 +93,14 @@ bool RemoteController::openTCP(IPStack &ip_stack) {
         return false;
     }
 
-    ip_stack.connect(host, port);
+    int rc = ip_stack.connect(host, port);
     vTaskDelay(pdMS_TO_TICKS(500));
+
+    if (rc != 0 || !ip_stack.TCP_connected()) {
+        printf("Failed TCP connect due to %d\n", rc);
+        return false;
+    }
+
     return true;
 }
 
@@ -141,7 +147,7 @@ bool RemoteController::sendData(IPStack &ip_stack, const sensorData &data) {
     rv = ip_stack.read((unsigned char*)buffer, sizeof(buffer) - 1, 2000);
     if (rv > 0) {
         buffer[rv] = '\0';
-        printf("ThingSpeak response: %s\n", buffer);
+        // printf("ThingSpeak response: %s\n", buffer);
     } else {
         printf("No HTTP response read after sendData.\n");
     }

@@ -47,13 +47,13 @@ int main() {
 
     // Optional bootstrap credentials for testing.
     // Comment this block out if you want EEPROM-only startup.
-    message msg{};
-    msg.type = NETWORK_CONFIG;
-    strncpy(msg.network_config.ssid, "Kelarotta", sizeof(msg.network_config.ssid) - 1);
-    strncpy(msg.network_config.password, "kelarotta123", sizeof(msg.network_config.password) - 1);
-    msg.network_config.ssid[sizeof(msg.network_config.ssid) - 1] = '\0';
-    msg.network_config.password[sizeof(msg.network_config.password) - 1] = '\0';
-    xQueueSendToBack(receive_queue, &msg, pdMS_TO_TICKS(10));
+    // message msg{};
+    // msg.type = NETWORK_CONFIG;
+    // strncpy(msg.network_config.ssid, "Kelarotta", sizeof(msg.network_config.ssid) - 1);
+    // strncpy(msg.network_config.password, "kelarotta123", sizeof(msg.network_config.password) - 1);
+    // msg.network_config.ssid[sizeof(msg.network_config.ssid) - 1] = '\0';
+    // msg.network_config.password[sizeof(msg.network_config.password) - 1] = '\0';
+    // xQueueSendToBack(receive_queue, &msg, pdMS_TO_TICKS(10));
     uiQueue = xQueueCreate(5, sizeof(SensorData));
 
     static SensorTask sensorTask(uiQueue);
@@ -63,6 +63,11 @@ int main() {
     sensorTask.start();
     uiTask.start();
 
+    sensorData sd = {.co2 = 150, .humidity = 150, .temperature = 123, .fan_speed = 70, .co2sp = 700};
+
+    message fuckyou {.type = SENSOR_DATA, .data = sd};
+
+    xQueueSendToBack(receive_queue, &fuckyou, pdMS_TO_TICKS(10));
     vTaskStartScheduler();
     while (true);
 }

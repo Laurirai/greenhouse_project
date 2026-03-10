@@ -108,7 +108,7 @@ void UITask::run() {
                 snprintf(buf, sizeof(buf), "CO2 target:");
                 display->text(buf, 0, 0);
 
-                snprintf(buf, sizeof(buf), "%.0f ppm", co2_setpoint);
+                snprintf(buf, sizeof(buf), "%.0lu ppm", co2_setpoint);
                 display->text(buf, 20, 25);
 
                 snprintf(buf, sizeof(buf), "ENC=adjust");
