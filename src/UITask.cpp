@@ -2,8 +2,9 @@
 #include "inputs/InputHandler.h"
 #include <cstdio>
 
-UITask::UITask(QueueHandle_t uiQueue, QueueHandle_t inputQueue, EEPROMManager &eeprom_)
-    : uiQueue(uiQueue), inputQueue(inputQueue), eeprom(eeprom_) {}
+UITask::UITask(QueueHandle_t uiQueue, QueueHandle_t inputQueue,
+               EEPROMManager &eeprom, std::shared_ptr<PicoI2C> i2c)
+    : uiQueue(uiQueue), inputQueue(inputQueue), eeprom(eeprom), i2c(i2c) {}
 
 void UITask::start() {
     xTaskCreate(taskFunction, "UI", 1024, this, 1, NULL);
@@ -14,7 +15,6 @@ void UITask::taskFunction(void* param) {
 }
 
 void UITask::run() {
-    i2c     = std::make_shared<PicoI2C>(1, 400000);
     display = std::make_unique<ssd1306os>(i2c);
 
     printf("UITask running\n");
@@ -25,15 +25,17 @@ void UITask::run() {
     bool needs_redraw = true;
 
     int main_selected = 0;
-    uint32_t co2_setpoint = 0;
+    uint32_t co2_setpoint = DEFAULT_CO2_SET;
+
     if (eeprom.loadCO2Setpoint(co2_setpoint)) {
-        printf("Loaded co2 from eeprom with value: %u\n");
-        if (co2_setpoint >= MIN_CO2_SET && co2_setpoint <= MAX_CO2_SET) {
-            printf("Read saved CO2 setpoint from EEPROM: %u\n", co2_setpoint);
-        } else {
-            printf("Trash CO2 setpoint in EEPROM, setting to default of %u\n", DEFAULT_CO2_SET);
+        printf("Loaded CO2 setpoint from EEPROM: %u\n", co2_setpoint);
+        if (co2_setpoint < MIN_CO2_SET || co2_setpoint > MAX_CO2_SET) {
+            printf("Invalid value, resetting to default: %u\n", DEFAULT_CO2_SET);
             co2_setpoint = DEFAULT_CO2_SET;
         }
+    } else {
+        printf("Failed to load CO2 setpoint, using default: %u\n", DEFAULT_CO2_SET);
+        co2_setpoint = DEFAULT_CO2_SET;
     }
 
     enum Screen { MAIN, VALUE_SET } current_screen = MAIN;
@@ -54,24 +56,28 @@ void UITask::run() {
                 }
             }
             else if (current_screen == VALUE_SET) {
-                // encoder turns adjust co2 target
-                if (ev == ENC_DOWN) co2_setpoint += 10;
-                if (ev == ENC_UP)   co2_setpoint -= 10;
+                if (ev == ENC_DOWN) {
+                    if (co2_setpoint + 10 <= MAX_CO2_SET)
+                        co2_setpoint += 10;
+                    else
+                        co2_setpoint = MAX_CO2_SET;
+                }
+                if (ev == ENC_UP) {
+                    if (co2_setpoint >= MIN_CO2_SET + 10)
+                        co2_setpoint -= 10;
+                    else
+                        co2_setpoint = MIN_CO2_SET;
+                }
 
-                // clamp to reasonable range
-                if (co2_setpoint < MIN_CO2_SET)    co2_setpoint = MIN_CO2_SET;
-                if (co2_setpoint > MAX_CO2_SET)    co2_setpoint = MAX_CO2_SET;
-
-                // encoder press saves and goes back
                 if (ev == ENC_PRESS) {
-                    printf("CO2 target saved: %.0hu ppm\n", co2_setpoint);
-                    // EEPROM write will go here
                     eeprom.saveCO2Setpoint(co2_setpoint);
+                    printf("CO2 setpoint saved: %u ppm\n", co2_setpoint);
                     current_screen = MAIN;
                 }
 
-                // back button discards and goes back
                 if (ev == BTN_BACK) {
+                    // reload from eeprom so unsaved changes are discarded
+                    eeprom.loadCO2Setpoint(co2_setpoint);
                     current_screen = MAIN;
                 }
             }
@@ -109,7 +115,7 @@ void UITask::run() {
                 snprintf(buf, sizeof(buf), "CO2 target:");
                 display->text(buf, 0, 0);
 
-                snprintf(buf, sizeof(buf), "%.0f ppm", co2_setpoint);
+                snprintf(buf, sizeof(buf), "%u ppm", co2_setpoint);
                 display->text(buf, 20, 25);
 
                 snprintf(buf, sizeof(buf), "ENC=adjust");

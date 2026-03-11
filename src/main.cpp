@@ -13,10 +13,14 @@
 #include "structs.h"
 #include "hardware/timer.h"
 #include "eeprom/eeprom.h"
-
 #include "SensorTask.h"
 #include "UITask.h"
 #include "inputs/InputHandler.h"
+#include "control/ControlTask.h"
+#include "ModbusClient.h"
+#include "PicoOsUart.h"
+#include "PicoI2C.h"
+#include "semphr.h"
 
 extern "C" {
     uint32_t read_runtime_ctr(void) {
@@ -39,29 +43,34 @@ int main() {
         printf("EEPROM initialized.\n");
     }
 
+    static std::shared_ptr<PicoOsUart>   uart       = std::make_shared<PicoOsUart>(1, 4, 5, 9600, 2);
+    static std::shared_ptr<ModbusClient> modbus      = std::make_shared<ModbusClient>(uart);
+    static std::shared_ptr<PicoI2C>      shared_i2c  = std::make_shared<PicoI2C>(1, 400000);
+    SemaphoreHandle_t modbusMutex = xSemaphoreCreateMutex();
+
     QueueHandle_t receive_queue = xQueueCreate(10, sizeof(message));
-    QueueHandle_t co2_que = xQueueCreate(10, sizeof(message));
+    QueueHandle_t co2_que       = xQueueCreate(10, sizeof(message));
+    QueueHandle_t controlQueue  = xQueueCreate(5, sizeof(SensorData));
+    uiQueue                     = xQueueCreate(5, sizeof(SensorData));
 
     static RemoteController remote_controller(eeprom, receive_queue, co2_que);
 
-
-    // Optional bootstrap credentials for testing.
-    // Comment this block out if you want EEPROM-only startup.
     message msg{};
     msg.type = NETWORK_CONFIG;
-    strncpy(msg.network_config.ssid, "kelarotta", sizeof(msg.network_config.ssid) - 1);
+    strncpy(msg.network_config.ssid, "Kelarotta", sizeof(msg.network_config.ssid) - 1);
     strncpy(msg.network_config.password, "kelarotta123", sizeof(msg.network_config.password) - 1);
     msg.network_config.ssid[sizeof(msg.network_config.ssid) - 1] = '\0';
     msg.network_config.password[sizeof(msg.network_config.password) - 1] = '\0';
     xQueueSendToBack(receive_queue, &msg, pdMS_TO_TICKS(10));
-    uiQueue = xQueueCreate(5, sizeof(SensorData));
 
-    static SensorTask sensorTask(uiQueue);
+    static SensorTask   sensorTask(uiQueue, controlQueue, modbus, modbusMutex, shared_i2c);
     static InputHandler inputHandler;
-    static UITask uiTask(uiQueue, inputHandler.getQueue(), eeprom);
+    static UITask       uiTask(uiQueue, inputHandler.getQueue(), eeprom, shared_i2c);
+    static ControlTask  controlTask(controlQueue, eeprom, modbus, modbusMutex);
 
     sensorTask.start();
     uiTask.start();
+    controlTask.start();
 
     vTaskStartScheduler();
     while (true);

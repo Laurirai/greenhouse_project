@@ -13,7 +13,7 @@
 
 class UITask {
 public:
-    explicit UITask(QueueHandle_t uiQueue, QueueHandle_t inputQueue, EEPROMManager &eeprom_);
+    explicit UITask(QueueHandle_t uiQueue, QueueHandle_t inputQueue, EEPROMManager &eeprom_, std::shared_ptr<PicoI2C> i2c);
     void start();
 private:
     static void taskFunction(void* param);
