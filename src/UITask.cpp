@@ -1,13 +1,19 @@
 #include "UITask.h"
 #include "inputs/InputHandler.h"
 #include <cstdio>
+#include <cstring>
+
+static const char CHAR_LIST[] = "abcdefghijklmnopqrstuvwxyz0123456789!@#$%&*()-_";
+static const int  CHAR_COUNT  = sizeof(CHAR_LIST) - 1;
 
 UITask::UITask(QueueHandle_t uiQueue, QueueHandle_t inputQueue,
-               EEPROMManager &eeprom, std::shared_ptr<PicoI2C> i2c)
-    : uiQueue(uiQueue), inputQueue(inputQueue), eeprom(eeprom), i2c(i2c) {}
+               EEPROMManager &eeprom, std::shared_ptr<PicoI2C> i2c,
+               QueueHandle_t networkQueue)
+    : uiQueue(uiQueue), inputQueue(inputQueue),
+      eeprom(eeprom), i2c(i2c), networkQueue(networkQueue) {}
 
 void UITask::start() {
-    xTaskCreate(taskFunction, "UI", 1024, this, 1, NULL);
+    xTaskCreate(taskFunction, "UI", 2048, this, 1, NULL);
 }
 
 void UITask::taskFunction(void* param) {
@@ -25,20 +31,31 @@ void UITask::run() {
     bool needs_redraw = true;
 
     int main_selected = 0;
-    uint32_t co2_setpoint = DEFAULT_CO2_SET;
 
+    uint32_t co2_setpoint = DEFAULT_CO2_SET;
     if (eeprom.loadCO2Setpoint(co2_setpoint)) {
         printf("Loaded CO2 setpoint from EEPROM: %u\n", co2_setpoint);
-        if (co2_setpoint < MIN_CO2_SET || co2_setpoint > MAX_CO2_SET) {
-            printf("Invalid value, resetting to default: %u\n", DEFAULT_CO2_SET);
+        if (co2_setpoint < MIN_CO2_SET || co2_setpoint > MAX_CO2_SET)
             co2_setpoint = DEFAULT_CO2_SET;
-        }
     } else {
-        printf("Failed to load CO2 setpoint, using default: %u\n", DEFAULT_CO2_SET);
         co2_setpoint = DEFAULT_CO2_SET;
     }
 
-    enum Screen { MAIN, VALUE_SET } current_screen = MAIN;
+    int id_selected = 0;
+
+    int  char_index  = 0;
+    char ssid_input[32] = {};
+    char pass_input[64] = {};
+    int  ssid_len = 0;
+    int  pass_len = 0;
+
+    enum Screen {
+        MAIN,
+        VALUE_SET,
+        ID_SCREEN,
+        SET_NAME,
+        SET_PASS
+    } current_screen = MAIN;
 
     while (true) {
         if (xQueueReceive(uiQueue, &data, 0) == pdTRUE) {
@@ -51,10 +68,15 @@ void UITask::run() {
             if (current_screen == MAIN) {
                 if (ev == ENC_DOWN && main_selected < 1) main_selected++;
                 if (ev == ENC_UP   && main_selected > 0) main_selected--;
-                if (ev == ENC_PRESS && main_selected == 0) {
-                    current_screen = VALUE_SET;
+                if (ev == ENC_PRESS) {
+                    if (main_selected == 0) current_screen = VALUE_SET;
+                    if (main_selected == 1) {
+                        id_selected = 0;
+                        current_screen = ID_SCREEN;
+                    }
                 }
             }
+
             else if (current_screen == VALUE_SET) {
                 if (ev == ENC_DOWN) {
                     if (co2_setpoint + 10 <= MAX_CO2_SET)
@@ -68,17 +90,86 @@ void UITask::run() {
                     else
                         co2_setpoint = MIN_CO2_SET;
                 }
-
                 if (ev == ENC_PRESS) {
                     eeprom.saveCO2Setpoint(co2_setpoint);
                     printf("CO2 setpoint saved: %u ppm\n", co2_setpoint);
                     current_screen = MAIN;
                 }
-
                 if (ev == BTN_BACK) {
-                    // reload from eeprom so unsaved changes are discarded
                     eeprom.loadCO2Setpoint(co2_setpoint);
                     current_screen = MAIN;
+                }
+            }
+
+            else if (current_screen == ID_SCREEN) {
+                if (ev == ENC_DOWN && id_selected < 2) id_selected++;
+                if (ev == ENC_UP   && id_selected > 0) id_selected--;
+                if (ev == ENC_PRESS) {
+                    char_index = 0;
+                    if (id_selected == 0) {
+                        memset(ssid_input, 0, sizeof(ssid_input));
+                        ssid_len = 0;
+                        current_screen = SET_NAME;
+                    } else if (id_selected == 1) {
+                        memset(pass_input, 0, sizeof(pass_input));
+                        pass_len = 0;
+                        current_screen = SET_PASS;
+                    } else if (id_selected == 2) {
+                        if (ssid_len >= 2 && pass_len >= 8) {
+                            message msg{};
+                            msg.type = NETWORK_CONFIG;
+                            strncpy(msg.network_config.ssid, ssid_input, sizeof(msg.network_config.ssid) - 1);
+                            strncpy(msg.network_config.password, pass_input, sizeof(msg.network_config.password) - 1);
+                            xQueueSend(networkQueue, &msg, 0);
+                            printf("Network config sent: %s / %s\n", ssid_input, pass_input);
+                            current_screen = MAIN;
+                        } else {
+                            printf("SSID or password too short, not sending\n");
+                        }
+                    }
+                }
+                if (ev == BTN_BACK || ev == BTN_RIGHT) {
+                    current_screen = MAIN;
+                }
+            }
+
+            else if (current_screen == SET_NAME) {
+                if (ev == ENC_DOWN) char_index = (char_index + 1) % CHAR_COUNT;
+                if (ev == ENC_UP)   char_index = (char_index - 1 + CHAR_COUNT) % CHAR_COUNT;
+                if (ev == ENC_PRESS && ssid_len < 31) {
+                    ssid_input[ssid_len++] = CHAR_LIST[char_index];
+                    ssid_input[ssid_len] = '\0';
+                }
+                if (ev == BTN_BACK && ssid_len > 0) {  // SW1 = delete last char
+                    ssid_input[--ssid_len] = '\0';
+                }
+                if (ev == BTN_LEFT) {  // SW2 = save and go back
+                    current_screen = ID_SCREEN;
+                }
+                if (ev == BTN_RIGHT) {  // SW0 = discard and go back
+                    memset(ssid_input, 0, sizeof(ssid_input));
+                    ssid_len = 0;
+                    current_screen = ID_SCREEN;
+                }
+            }
+
+            else if (current_screen == SET_PASS) {
+                if (ev == ENC_DOWN) char_index = (char_index + 1) % CHAR_COUNT;
+                if (ev == ENC_UP)   char_index = (char_index - 1 + CHAR_COUNT) % CHAR_COUNT;
+                if (ev == ENC_PRESS && pass_len < 63) {
+                    pass_input[pass_len++] = CHAR_LIST[char_index];
+                    pass_input[pass_len] = '\0';
+                }
+                if (ev == BTN_BACK && pass_len > 0) {  // SW1 = delete last char
+                    pass_input[--pass_len] = '\0';
+                }
+                if (ev == BTN_LEFT) {  // SW2 = save and go back
+                    current_screen = ID_SCREEN;
+                }
+                if (ev == BTN_RIGHT) {  // SW0 = discard and go back
+                    memset(pass_input, 0, sizeof(pass_input));
+                    pass_len = 0;
+                    current_screen = ID_SCREEN;
                 }
             }
         }
@@ -111,6 +202,7 @@ void UITask::run() {
                 snprintf(buf, sizeof(buf), "%sId", main_selected == 1 ? "*" : " ");
                 display->text(buf, 90, 50);
             }
+
             else if (current_screen == VALUE_SET) {
                 snprintf(buf, sizeof(buf), "CO2 target:");
                 display->text(buf, 0, 0);
@@ -123,6 +215,48 @@ void UITask::run() {
 
                 snprintf(buf, sizeof(buf), "PRESS=save SW1=back");
                 display->text(buf, 0, 55);
+            }
+
+            else if (current_screen == ID_SCREEN) {
+                snprintf(buf, sizeof(buf), "Wifi set up");
+                display->text(buf, 0, 0);
+
+                snprintf(buf, sizeof(buf), "%sset name", id_selected == 0 ? "*" : " ");
+                display->text(buf, 20, 18);
+
+                snprintf(buf, sizeof(buf), "%sSet password", id_selected == 1 ? "*" : " ");
+                display->text(buf, 20, 30);
+
+                snprintf(buf, sizeof(buf), "%sSend", id_selected == 2 ? "*" : " ");
+                display->text(buf, 20, 42);
+
+                snprintf(buf, sizeof(buf), "N:%s", ssid_len > 0 ? "ok" : "--");
+                display->text(buf, 0, 55);
+
+                snprintf(buf, sizeof(buf), "P:%s", pass_len > 0 ? "ok" : "--");
+                display->text(buf, 40, 55);
+            }
+
+            else if (current_screen == SET_NAME || current_screen == SET_PASS) {
+                bool is_name = (current_screen == SET_NAME);
+
+                snprintf(buf, sizeof(buf), is_name ? "Set WiFi name:" : "Set WiFi pass:");
+                display->text(buf, 0, 0);
+
+                int prev = (char_index - 1 + CHAR_COUNT) % CHAR_COUNT;
+                int next = (char_index + 1) % CHAR_COUNT;
+                snprintf(buf, sizeof(buf), "< %c  [%c]  %c >",
+                         CHAR_LIST[prev], CHAR_LIST[char_index], CHAR_LIST[next]);
+                display->text(buf, 0, 18);
+
+                snprintf(buf, sizeof(buf), "%s", is_name ? ssid_input : pass_input);
+                display->text(buf, 0, 35);
+
+                snprintf(buf, sizeof(buf), "ENC=add SW1=del");
+                display->text(buf, 0, 48);
+
+                snprintf(buf, sizeof(buf), "SW2=save SW0=discard");
+                display->text(buf, 0, 57);
             }
 
             display->show();

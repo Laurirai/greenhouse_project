@@ -65,7 +65,7 @@ int main() {
 
     static SensorTask   sensorTask(uiQueue, controlQueue, modbus, modbusMutex, shared_i2c);
     static InputHandler inputHandler;
-    static UITask       uiTask(uiQueue, inputHandler.getQueue(), eeprom, shared_i2c);
+    static UITask       uiTask(uiQueue, inputHandler.getQueue(), eeprom, shared_i2c, receive_queue);
     static ControlTask  controlTask(controlQueue, eeprom, modbus, modbusMutex);
 
     sensorTask.start();
