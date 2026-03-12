@@ -245,6 +245,7 @@ bool RemoteController::readTalkBackCO2(IPStack &ip_stack) {
         body++;
     }
 
+    // half assed check for http chunked encoding, it works for this but not a good way.
     char *actual_body = body;
     char *newline = strstr(body, "\r\n");
 
@@ -317,7 +318,20 @@ void RemoteController::run() {
                 case SENSOR_DATA:
                     if (cloudConnected && ip_stack.WiFi_connected()) {
                         if ((now - last_send) >= send_period || first_send) {
-
+                            float diff = msg.data.co2 - (float)msg.data.co2sp;
+                            int x = 100;
+                            if (diff <= 0) {
+                                x = 0;
+                            } else if (diff < 400) {
+                                x = 20;
+                            } else if (diff < 800) {
+                                x = 40;
+                            } else if (diff < 1200) {
+                                x = 60;
+                            } else if (diff < 1600) {
+                                x = 80;
+                            }
+                            msg.data.fan_speed = x;
                             printf("Sending sensor data...\n");
                             if (sendData(ip_stack, msg.data)) {
                                 last_send = now;

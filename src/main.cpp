@@ -28,8 +28,6 @@ extern "C" {
     }
 }
 
-QueueHandle_t uiQueue;
-
 int main() {
     stdio_init_all();
 
@@ -51,7 +49,7 @@ int main() {
     QueueHandle_t receive_queue = xQueueCreate(10, sizeof(message));
     QueueHandle_t co2_que       = xQueueCreate(10, sizeof(message));
     QueueHandle_t controlQueue  = xQueueCreate(5, sizeof(SensorData));
-    uiQueue                     = xQueueCreate(5, sizeof(SensorData));
+    QueueHandle_t uiQueue                     = xQueueCreate(5, sizeof(SensorData));
 
     static RemoteController remote_controller(eeprom, receive_queue, co2_que);
 
