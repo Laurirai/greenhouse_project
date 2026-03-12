@@ -47,7 +47,7 @@ void SensorTask::run() {
         printf("CO2:%.0f RH:%.1f T:%.1f P:%.2f\n",
                data.co2_ppm, data.rh, data.temp, data.pressure);
 
-        xQueueSend(receive_queue, &d, 0);
+        xQueueSend(receive_queue, &msg, 0);
         xQueueSend(uiQueue, &data, 0);
         xQueueSend(controlQueue, &data, 0);
         vTaskDelay(pdMS_TO_TICKS(2000));
