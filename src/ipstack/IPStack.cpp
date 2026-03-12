@@ -15,9 +15,10 @@
 
 // To remove Pico example debugging functions during refactoring
 //#define DEBUG_printf(x, ...) {}
-#define DEBUG_printf printf
-#define DUMP_BYTES(A, B) {}
-
+// #define DEBUG_printf printf
+// #define DUMP_BYTES(A, B) {}
+#define DEBUG_printf(...) ((void)0)
+#define DUMP_BYTES(...)   ((void)0)
 
 IPStack::IPStack() : tcp_pcb{nullptr}, dropped{0}, count{0}, wr{0}, rd{0}, tcp_connected{false},wifi_connected{false} {
 }
@@ -90,7 +91,7 @@ int IPStack::connect(const char *hostname, int port) {
         do {
             err = dns_gethostbyname(hostname, &resolved, NULL, NULL);
             if (err == ERR_OK) {
-                printf("DNS success. %s\n", ipaddr_ntoa(&resolved));
+                // printf("DNS success. %s\n", ipaddr_ntoa(&resolved));
                 remote_addr = resolved;
                 break;
             } else if (err == ERR_INPROGRESS) {
@@ -350,7 +351,6 @@ int IPStack::disconnect() {
     return err;
 }
 
-// implemented disconnection from wifi (tcp disconnect, deinitialiaze wifi and update conn. status)
 void IPStack::disconnect_WiFi() {
     // tcp disconnect
     if (tcp_pcb != nullptr) {

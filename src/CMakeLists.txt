@@ -52,6 +52,8 @@ add_executable(greenhouse_project
         structs.h
         eeprom/eeprom.cpp
         eeprom/eeprom.h
+        control/ControlTask.cpp
+        control/ControlTask.h
 )
 
 target_include_directories(greenhouse_project PRIVATE
