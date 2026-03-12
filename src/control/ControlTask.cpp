@@ -17,18 +17,6 @@ void ControlTask::taskFunction(void* param) {
     static_cast<ControlTask*>(param)->run();
 }
 
-uint16_t ControlTask::calculateFanSpeed(float co2, uint32_t setpoint) {
-    if (co2 > 2000.0f) return 100;
-
-    float diff = co2 - (float)setpoint;
-
-    if (diff <= 0)   return 0;
-    if (diff < 400)  return 20;
-    if (diff < 800)  return 40;
-    if (diff < 1200) return 60;
-    if (diff < 1600) return 80;
-    return 100;
-}
 
 void ControlTask::setFanSpeed(uint16_t percent) {
     fan_reg->write(percent * 10);

@@ -146,7 +146,7 @@ void UITask::run() {
                             strncpy(msg.network_config.ssid, ssid_input, sizeof(msg.network_config.ssid) - 1);
                             strncpy(msg.network_config.password, pass_input, sizeof(msg.network_config.password) - 1);
                             xQueueSend(networkQueue, &msg, 0);
-                            printf("Network config sent: %s / ********\n", ssid_input);
+                            printf("Network config sent: %s\n", ssid_input);
                             current_screen = MAIN;
                         } else {
                             printf("SSID or password too short, not sending\n");
@@ -204,18 +204,8 @@ void UITask::run() {
 
             if (current_screen == MAIN) {
                 uint16_t display_fan = 0;
+                display_fan = calculateFanSpeed(data.co2_ppm, co2setpoint);
 
-                if (data.co2_ppm > 2000.0f) {
-                    display_fan = 100;
-                } else {
-                    float diff = data.co2_ppm - (float)co2_setpoint;
-                    if      (diff <= 0)   display_fan = 0;
-                    else if (diff < 400)  display_fan = 20;
-                    else if (diff < 800)  display_fan = 40;
-                    else if (diff < 1200) display_fan = 60;
-                    else if (diff < 1600) display_fan = 80;
-                    else                  display_fan = 100;
-                }
 
                 snprintf(buf, sizeof(buf), "Auto greenhouse");
                 display->text(buf, 0, 0);

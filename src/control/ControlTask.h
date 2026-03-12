@@ -8,6 +8,7 @@
 #include "ModbusClient.h"
 #include "ModbusRegister.h"
 #include "eeprom/eeprom.h"
+#include "structs.h"
 
 class ControlTask {
 public:
@@ -18,7 +19,6 @@ private:
     static void taskFunction(void* param);
     void run();
 
-    uint16_t calculateFanSpeed(float co2, uint32_t setpoint);
     void setFanSpeed(uint16_t percent);
 
     QueueHandle_t controlQueue;

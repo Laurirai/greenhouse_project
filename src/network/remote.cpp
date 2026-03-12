@@ -7,20 +7,7 @@
 #include <cstring>
 #include <cctype>
 
-namespace {
-    uint16_t calculateFanSpeedForCloud(uint16_t co2, uint32_t setpoint) {
-        if (co2 > 2000) return 100;
 
-        float diff = (float)co2 - (float)setpoint;
-
-        if (diff <= 0)   return 0;
-        if (diff < 400)  return 20;
-        if (diff < 800)  return 40;
-        if (diff < 1200) return 60;
-        if (diff < 1600) return 80;
-        return 100;
-    }
-}
 
 RemoteController::RemoteController(EEPROMManager &eeprom_, QueueHandle_t rcq)
     : eeprom(eeprom_), receive_que(rcq) {
@@ -102,16 +89,9 @@ bool RemoteController::openTCP(IPStack &ip_stack) {
         return false;
     }
 
-    for (int i = 0; i < 20; ++i) {
-        if (ip_stack.TCP_connected()) {
-            return true;
-        }
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
 
-    printf("TCP connect timed out after successful connect() call.\n");
-    closeTCP(ip_stack);
-    return false;
+    vTaskDelay(pdMS_TO_TICKS(200));
+    return true;
 }
 
 void RemoteController::closeTCP(IPStack &ip_stack) {
@@ -360,7 +340,7 @@ void RemoteController::run() {
                     if (cloudConnected && ip_stack.WiFi_connected()) {
                         if ((now - last_send) >= send_period || first_send) {
                             msg.data.co2sp = static_cast<uint16_t>(co2setpoint);
-                            msg.data.fan_speed = calculateFanSpeedForCloud(msg.data.co2, msg.data.co2sp);
+                            msg.data.fan_speed = calculateFanSpeed(msg.data.co2, msg.data.co2sp);
 
                             printf("Sending sensor data...\n");
                             if (sendData(ip_stack, msg.data)) {
