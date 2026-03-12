@@ -10,6 +10,7 @@
 #include "PicoI2C.h"
 #include "pressure_sensor/PressureSensor.h"
 #include "task.h"
+#include "structs.h"
 
 struct SensorData {
     float co2_ppm;
@@ -22,7 +23,7 @@ class SensorTask {
 public:
     SensorTask(QueueHandle_t uiQueue, QueueHandle_t controlQueue,
                std::shared_ptr<ModbusClient> modbus, SemaphoreHandle_t modbusMutex,
-               std::shared_ptr<PicoI2C> i2c);
+               std::shared_ptr<PicoI2C> i2c, QueueHandle_t rcq);
     void start();
 private:
     static void taskFunction(void* param);
@@ -30,6 +31,7 @@ private:
 
     QueueHandle_t uiQueue;
     QueueHandle_t controlQueue;
+    QueueHandle_t receive_queue;
     SemaphoreHandle_t modbusMutex;
     std::shared_ptr<ModbusClient> modbus;
     std::shared_ptr<PicoI2C> i2c;

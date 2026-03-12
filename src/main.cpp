@@ -56,7 +56,7 @@ int main() {
     static RemoteController remote_controller(eeprom, receive_queue, co2_que);
 
 
-    static SensorTask   sensorTask(uiQueue, controlQueue, modbus, modbusMutex, shared_i2c);
+    static SensorTask   sensorTask(uiQueue, controlQueue, modbus, modbusMutex, shared_i2c, receive_queue);
     static InputHandler inputHandler;
     static UITask       uiTask(uiQueue, inputHandler.getQueue(), eeprom, shared_i2c, receive_queue);
     static ControlTask  controlTask(controlQueue, eeprom, modbus, modbusMutex);

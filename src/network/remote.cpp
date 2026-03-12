@@ -169,18 +169,6 @@ bool RemoteController::parseTalkBackCommand(const char *body, uint32_t &co2_valu
     return false;
 }
 
-void RemoteController::forwardCO2Set(uint32_t co2_value) {
-    message msg{};
-    msg.type = CO2SET;
-    msg.co2set = co2_value;
-
-    if (xQueueSend(to_co2_queue, &msg, pdMS_TO_TICKS(100)) != pdTRUE) {
-        printf("Failed to send CO2SET message to queue.\n");
-        return;
-    }
-
-    printf("Sent CO2SET message to queue with value: %u\n", co2_value);
-}
 
 bool RemoteController::readTalkBackCO2(IPStack &ip_stack) {
     if (!cloudConnected || !ip_stack.WiFi_connected()) {
@@ -273,14 +261,12 @@ bool RemoteController::readTalkBackCO2(IPStack &ip_stack) {
         return false;
     }
 
-    forwardCO2Set(co2_value);
-
     if (EEPROM_ENABLED) {
         if (!eeprom.saveCO2Setpoint(co2_value)) {
             printf("Failed to save CO2 setpoint to EEPROM.\n");
         }
     }
-
+    co2setpoint = co2_value;
     return true;
 }
 
@@ -323,7 +309,6 @@ void RemoteController::run() {
                     if (cloudConnected && ip_stack.WiFi_connected()) {
                         if ((now - last_send) >= send_period || first_send) {
                             last_send = now;
-
                             printf("Sending data...\n");
                             if (!sendData(ip_stack, msg.data)) {
                                 printf("Failed to send data to thingspeak.\n");

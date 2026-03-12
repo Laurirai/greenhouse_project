@@ -46,7 +46,6 @@ private:
     bool readHttpResponse(IPStack &ip_stack);
     bool sendData(IPStack &ip_stack, const sensorData &data);
     bool parseTalkBackCommand(const char *body, uint32_t &co2_value);
-    void forwardCO2Set(uint32_t co2_value);
     bool readTalkBackCO2(IPStack &ip_stack);
 };
 
