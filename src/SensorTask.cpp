@@ -8,7 +8,7 @@ SensorTask::SensorTask(QueueHandle_t uiQueue, QueueHandle_t controlQueue,
       modbus(modbus), modbusMutex(modbusMutex), i2c(i2c), receive_queue(rcq) {}
 
 void SensorTask::start() {
-    xTaskCreate(taskFunction, "Sensor", 2048, this, tskIDLE_PRIORITY+2, NULL);
+    xTaskCreate(taskFunction, "Sensor", 1048, this, tskIDLE_PRIORITY+1, NULL);
 }
 
 void SensorTask::taskFunction(void* param) {

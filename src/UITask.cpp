@@ -14,7 +14,7 @@ UITask::UITask(QueueHandle_t uiQueue, QueueHandle_t inputQueue,
       eeprom(eeprom), i2c(i2c), networkQueue(networkQueue) {}
 
 void UITask::start() {
-    xTaskCreate(taskFunction, "UI", 4096, this, tskIDLE_PRIORITY+3, NULL);
+    xTaskCreate(taskFunction, "UI", 4096, this, tskIDLE_PRIORITY+2, NULL);
 }
 
 void UITask::taskFunction(void* param) {

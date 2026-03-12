@@ -35,7 +35,7 @@ RemoteController::RemoteController(EEPROMManager &eeprom_, QueueHandle_t rcq)
 
     xTaskCreate(taskFunction,
                 "remote",
-                4096,
+                2048,
                 this,
                 tskIDLE_PRIORITY + 2,
                 NULL);
