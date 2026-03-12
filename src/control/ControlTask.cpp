@@ -1,6 +1,9 @@
 #include "control/ControlTask.h"
 #include <cstdio>
 
+#include "SensorTask.h"
+#include "structs.h"
+
 ControlTask::ControlTask(QueueHandle_t controlQueue, EEPROMManager &eeprom,
                          std::shared_ptr<ModbusClient> modbus, SemaphoreHandle_t modbusMutex)
     : controlQueue(controlQueue), eeprom(eeprom),
@@ -15,6 +18,8 @@ void ControlTask::taskFunction(void* param) {
 }
 
 uint16_t ControlTask::calculateFanSpeed(float co2, uint32_t setpoint) {
+    if (co2 > 2000.0f) return 100;
+
     float diff = co2 - (float)setpoint;
 
     if (diff <= 0)   return 0;
@@ -38,31 +43,23 @@ void ControlTask::run() {
     uint16_t last_fan_speed = 255;
 
     while (true) {
-        SensorData data;
+        SensorData data{};
 
         if (xQueueReceive(controlQueue, &data, pdMS_TO_TICKS(5000)) == pdTRUE) {
-            uint32_t setpoint = DEFAULT_CO2_SET;
-
-            if (EEPROM_ENABLED) {
-                uint32_t saved = 0;
-                if (eeprom.loadCO2Setpoint(saved)) {
-                    if (saved >= MIN_CO2_SET && saved <= MAX_CO2_SET)
-                        setpoint = saved;
-                }
-            }
-
-            uint16_t fan_speed = calculateFanSpeed(data.co2_ppm, setpoint);
+            uint16_t fan_speed = calculateFanSpeed(data.co2_ppm, co2setpoint);
 
             if (fan_speed != last_fan_speed) {
                 if (xSemaphoreTake(modbusMutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
                     setFanSpeed(fan_speed);
                     xSemaphoreGive(modbusMutex);
+                    last_fan_speed = fan_speed;
+                } else {
+                    printf("ControlTask: Modbus mutex timeout, fan unchanged.\n");
                 }
-                last_fan_speed = fan_speed;
             }
 
             printf("ControlTask: CO2=%.0f setpoint=%u fan=%u%%\n",
-                   data.co2_ppm, setpoint, fan_speed);
+                   data.co2_ppm, co2setpoint, fan_speed);
         }
     }
 }

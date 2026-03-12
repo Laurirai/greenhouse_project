@@ -3,8 +3,9 @@
 #include <cstdio>
 #include <cstring>
 
-static const char CHAR_LIST[] = "abcdefghijklmnopqrstuvwxyz0123456789!@#$%&*()-_";
-static const int  CHAR_COUNT  = sizeof(CHAR_LIST) - 1;
+static const char CHAR_LIST[] =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*()-_ .";
+static const int CHAR_COUNT = sizeof(CHAR_LIST) - 1;
 
 UITask::UITask(QueueHandle_t uiQueue, QueueHandle_t inputQueue,
                EEPROMManager &eeprom, std::shared_ptr<PicoI2C> i2c,
@@ -31,19 +32,25 @@ void UITask::run() {
     bool needs_redraw = true;
 
     int main_selected = 0;
+    uint32_t &co2_setpoint = co2setpoint;
 
-    uint32_t co2_setpoint = DEFAULT_CO2_SET;
-    if (eeprom.loadCO2Setpoint(co2_setpoint)) {
-        printf("Loaded CO2 setpoint from EEPROM: %u\n", co2_setpoint);
-        if (co2_setpoint < MIN_CO2_SET || co2_setpoint > MAX_CO2_SET)
+    if (EEPROM_ENABLED) {
+        uint32_t stored = DEFAULT_CO2_SET;
+        if (eeprom.loadCO2Setpoint(stored) &&
+            stored >= MIN_CO2_SET &&
+            stored <= MAX_CO2_SET) {
+            co2_setpoint = stored;
+            printf("Loaded CO2 setpoint from EEPROM: %u\n", co2_setpoint);
+        } else {
             co2_setpoint = DEFAULT_CO2_SET;
+        }
     } else {
         co2_setpoint = DEFAULT_CO2_SET;
     }
 
     int id_selected = 0;
 
-    int  char_index  = 0;
+    int  char_index = 0;
     char ssid_input[32] = {};
     char pass_input[64] = {};
     int  ssid_len = 0;
@@ -91,12 +98,30 @@ void UITask::run() {
                         co2_setpoint = MIN_CO2_SET;
                 }
                 if (ev == ENC_PRESS) {
-                    eeprom.saveCO2Setpoint(co2_setpoint);
-                    printf("CO2 setpoint saved: %u ppm\n", co2_setpoint);
+                    if (EEPROM_ENABLED) {
+                        if (eeprom.saveCO2Setpoint(co2_setpoint)) {
+                            printf("CO2 setpoint saved: %u ppm\n", co2_setpoint);
+                        } else {
+                            printf("Failed to save CO2 setpoint.\n");
+                        }
+                    } else {
+                        printf("EEPROM disabled, runtime CO2 setpoint now: %u ppm\n", co2_setpoint);
+                    }
                     current_screen = MAIN;
                 }
                 if (ev == BTN_BACK) {
-                    eeprom.loadCO2Setpoint(co2_setpoint);
+                    if (EEPROM_ENABLED) {
+                        uint32_t stored = DEFAULT_CO2_SET;
+                        if (eeprom.loadCO2Setpoint(stored) &&
+                            stored >= MIN_CO2_SET &&
+                            stored <= MAX_CO2_SET) {
+                            co2_setpoint = stored;
+                        } else {
+                            co2_setpoint = DEFAULT_CO2_SET;
+                        }
+                    } else {
+                        co2_setpoint = DEFAULT_CO2_SET;
+                    }
                     current_screen = MAIN;
                 }
             }
@@ -121,7 +146,7 @@ void UITask::run() {
                             strncpy(msg.network_config.ssid, ssid_input, sizeof(msg.network_config.ssid) - 1);
                             strncpy(msg.network_config.password, pass_input, sizeof(msg.network_config.password) - 1);
                             xQueueSend(networkQueue, &msg, 0);
-                            printf("Network config sent: %s / %s\n", ssid_input, pass_input);
+                            printf("Network config sent: %s / ********\n", ssid_input);
                             current_screen = MAIN;
                         } else {
                             printf("SSID or password too short, not sending\n");
@@ -178,15 +203,19 @@ void UITask::run() {
             display->fill(0);
 
             if (current_screen == MAIN) {
-                // calculate fan speed from current co2 and setpoint
                 uint16_t display_fan = 0;
-                float diff = data.co2_ppm - (float)co2_setpoint;
-                if      (diff <= 0)   display_fan = 0;
-                else if (diff < 400)  display_fan = 20;
-                else if (diff < 800)  display_fan = 40;
-                else if (diff < 1200) display_fan = 60;
-                else if (diff < 1600) display_fan = 80;
-                else                  display_fan = 100;
+
+                if (data.co2_ppm > 2000.0f) {
+                    display_fan = 100;
+                } else {
+                    float diff = data.co2_ppm - (float)co2_setpoint;
+                    if      (diff <= 0)   display_fan = 0;
+                    else if (diff < 400)  display_fan = 20;
+                    else if (diff < 800)  display_fan = 40;
+                    else if (diff < 1200) display_fan = 60;
+                    else if (diff < 1600) display_fan = 80;
+                    else                  display_fan = 100;
+                }
 
                 snprintf(buf, sizeof(buf), "Auto greenhouse");
                 display->text(buf, 0, 0);
@@ -207,7 +236,10 @@ void UITask::run() {
                 display->text(buf, 0, 46);
 
                 snprintf(buf, sizeof(buf), "SET");
-                display->text(buf, 95, 20);
+                display->text(buf, 95, 10);
+
+                snprintf(buf, sizeof(buf), "%4uppm", co2_setpoint);
+                display->text(buf, 85, 20);
 
                 snprintf(buf, sizeof(buf), "%sval", main_selected == 0 ? "*" : " ");
                 display->text(buf, 90, 36);

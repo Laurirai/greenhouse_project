@@ -3,13 +3,11 @@
 
 #include <memory>
 #include "FreeRTOS.h"
-#include "task.h"
 #include "queue.h"
 #include "semphr.h"
 #include "ModbusClient.h"
 #include "ModbusRegister.h"
 #include "eeprom/eeprom.h"
-#include "SensorTask.h"
 
 class ControlTask {
 public:
