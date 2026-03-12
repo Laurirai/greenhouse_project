@@ -219,10 +219,7 @@ void UITask::run() {
                 display->text(buf, 0, 46);
 
                 snprintf(buf, sizeof(buf), "SET");
-                display->text(buf, 95, 10);
-
-                snprintf(buf, sizeof(buf), "%4uppm", co2_setpoint);
-                display->text(buf, 85, 20);
+                display->text(buf, 95, 20);
 
                 snprintf(buf, sizeof(buf), "%sval", main_selected == 0 ? "*" : " ");
                 display->text(buf, 90, 36);

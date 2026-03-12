@@ -81,6 +81,8 @@ target_link_libraries(greenhouse_project
         pico_mbedtls
 )
 
+add_compile_definitions(PICO_CYW43_LOGGING_ENABLED=0)
+
 # Ignore warnings from lwip code
 set_source_files_properties(
         ${PICO_LWIP_PATH}/src/apps/altcp_tls/altcp_tls_mbedtls.c

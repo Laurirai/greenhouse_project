@@ -17,12 +17,13 @@ include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 include(${FREERTOS_KERNEL_PATH}/portable/ThirdParty/GCC/RP2040/FreeRTOS_Kernel_import.cmake)
 #message(STATUS "PICO_SDK_PATH is: $ENV{PICO_SDK_PATH}")
 
+add_compile_definitions(PICO_CYW43_LOGGING_ENABLED=0)
+
 # Define project
 project(${ProjectName})
 
 # Initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
-
 #add_compile_options(-O0)
 # Add subdirectories
 add_subdirectory(src)
