@@ -5,7 +5,7 @@
 
 static const char CHAR_LIST[] =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*()-_ .";
-static const int  CHAR_COUNT  = sizeof(CHAR_LIST) - 1;
+static const int CHAR_COUNT = sizeof(CHAR_LIST) - 1;
 
 UITask::UITask(QueueHandle_t uiQueue, QueueHandle_t inputQueue,
                EEPROMManager &eeprom, std::shared_ptr<PicoI2C> i2c,
@@ -219,7 +219,10 @@ void UITask::run() {
                 display->text(buf, 0, 46);
 
                 snprintf(buf, sizeof(buf), "SET");
-                display->text(buf, 95, 20);
+                display->text(buf, 95, 10);
+
+                snprintf(buf, sizeof(buf), "%4uppm", co2_setpoint);
+                display->text(buf, 85, 20);
 
                 snprintf(buf, sizeof(buf), "%sval", main_selected == 0 ? "*" : " ");
                 display->text(buf, 90, 36);
