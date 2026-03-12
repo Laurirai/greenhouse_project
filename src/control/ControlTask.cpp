@@ -47,7 +47,7 @@ void ControlTask::run() {
             }
 
             printf("ControlTask: CO2=%.0f setpoint=%u fan=%u%%\n",
-                   data.co2_ppm, setpoint, fan_speed);
+                   data.co2_ppm, co2setpoint, fan_speed);
         }
     }
 }
