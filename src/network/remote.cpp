@@ -32,14 +32,6 @@ RemoteController::RemoteController(EEPROMManager &eeprom_, QueueHandle_t rcq, Qu
             printf("Failed to read creds from eeprom\n");
         }
 
-        uint32_t saved_co2 = 0;
-        if (eeprom.loadCO2Setpoint(saved_co2)) {
-            if (saved_co2 >= MIN_CO2_SET && saved_co2 <= MAX_CO2_SET) {
-                printf("Read saved CO2 setpoint from EEPROM: %u\n", saved_co2);
-            } else {
-                printf("Trash CO2 setpoint in EEPROM, ignoring: %u\n", saved_co2);
-            }
-        }
     }
 
     xTaskCreate(taskFunction,
@@ -67,8 +59,6 @@ bool RemoteController::connectCloud(IPStack &ip_stack) {
         return true;
     }
 
-    printf("Connecting to Wi-Fi...\n");
-
     if (!ip_stack.connect_WiFi(ssid, password, NETWORK_ATTEMPT_COUNT)) {
         printf("Failed to connect to WiFi.\n");
         cloudConnected = false;
@@ -93,9 +83,23 @@ bool RemoteController::openTCP(IPStack &ip_stack) {
         return false;
     }
 
-    ip_stack.connect(host, port);
-    vTaskDelay(pdMS_TO_TICKS(500));
-    return true;
+    int rc = ip_stack.connect(host, port);
+    if (rc != 0) {
+        printf("Failed TCP connect due to %d\n", rc);
+        closeTCP(ip_stack);
+        return false;
+    }
+
+    for (int i = 0; i < 20; ++i) {
+        if (ip_stack.TCP_connected()) {
+            return true;
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+
+    printf("TCP connect timed out after successful connect() call.\n");
+    closeTCP(ip_stack);
+    return false;
 }
 
 void RemoteController::closeTCP(IPStack &ip_stack) {
@@ -139,11 +143,18 @@ bool RemoteController::sendData(IPStack &ip_stack, const sensorData &data) {
     }
 
     rv = ip_stack.read((unsigned char*)buffer, sizeof(buffer) - 1, 2000);
-    if (rv > 0) {
-        buffer[rv] = '\0';
-        printf("ThingSpeak response: %s\n", buffer);
-    } else {
+    if (rv <= 0) {
         printf("No HTTP response read after sendData.\n");
+        closeTCP(ip_stack);
+        return false;
+    }
+
+    buffer[rv] = '\0';
+
+    if (strstr(buffer, "HTTP/1.1 200 OK") == nullptr) {
+        printf("ThingSpeak request failed.\n");
+        closeTCP(ip_stack);
+        return false;
     }
 
     closeTCP(ip_stack);
@@ -210,7 +221,7 @@ bool RemoteController::readTalkBackCO2(IPStack &ip_stack) {
     }
 
     buffer[rv] = '\0';
-    printf("TalkBack response: %s\n", buffer);
+    // printf("TalkBack response: %s\n", buffer);
     closeTCP(ip_stack);
 
     if (strstr(buffer, "HTTP/1.1 401 Unauthorized") != nullptr) {
@@ -251,6 +262,9 @@ bool RemoteController::readTalkBackCO2(IPStack &ip_stack) {
     }
 
     uint32_t co2_value = 0;
+    if (*actual_body == '\n' || strcmp(actual_body, "0") == 0) {
+        return false;
+    }
     if (!parseTalkBackCommand(actual_body, co2_value)) {
         printf("No valid CO2 command found in TalkBack body: %s\n", actual_body);
         return false;
@@ -266,7 +280,7 @@ bool RemoteController::readTalkBackCO2(IPStack &ip_stack) {
             printf("Failed to save CO2 setpoint to EEPROM.\n");
         }
     }
-    co2setpoint = co2_value;
+
     return true;
 }
 
@@ -284,8 +298,6 @@ void RemoteController::run() {
         printf("No SSID loaded, waiting for network config.\n");
     }
 
-    printf("Hiya! %d\n", cloudConnected);
-
     while (true) {
         message msg{};
         bool got_msg = xQueueReceive(receive_que, &msg, pdMS_TO_TICKS(100));
@@ -300,42 +312,40 @@ void RemoteController::run() {
         }
 
         if (got_msg) {
-            printf("got a message with type: %d\n", msg.type);
 
             switch (msg.type) {
                 case SENSOR_DATA:
-                    printf("Received sensor data.\n");
-
                     if (cloudConnected && ip_stack.WiFi_connected()) {
                         if ((now - last_send) >= send_period || first_send) {
-                            last_send = now;
-                            printf("Sending data...\n");
-                            if (!sendData(ip_stack, msg.data)) {
+
+                            printf("Sending sensor data...\n");
+                            if (sendData(ip_stack, msg.data)) {
+                                last_send = now;
+                                first_send = false;
+                            }
+                            else {
                                 printf("Failed to send data to thingspeak.\n");
                             }
-
-                            first_send = false;
                         }
                     }
                     break;
 
-                case NETWORK_CONFIG:
-                    printf("Received network config info.\n");
+                case NETWORK_CONFIG: {
+                    char new_ssid[32]{};
+                    char new_password[64]{};
 
-                    strncpy(ssid, msg.network_config.ssid, sizeof(ssid) - 1);
-                    strncpy(password, msg.network_config.password, sizeof(password) - 1);
-                    ssid[sizeof(ssid) - 1] = '\0';
-                    password[sizeof(password) - 1] = '\0';
+                    strncpy(new_ssid, msg.network_config.ssid, sizeof(new_ssid) - 1);
+                    strncpy(new_password, msg.network_config.password, sizeof(new_password) - 1);
 
-                    if (strlen(ssid) < 2 || strlen(password) < 8) {
+                    if (strlen(new_ssid) < 2 || strlen(new_password) < 8) {
                         printf("Ignoring invalid network config.\n");
-                        memset(ssid, 0, sizeof(ssid));
-                        memset(password, 0, sizeof(password));
                         break;
                     }
 
-                    printf("Received SSID: %s\n", ssid);
-                    printf("Received PASS: %s\n", password);
+                    strncpy(ssid, new_ssid, sizeof(ssid) - 1);
+                    strncpy(password, new_password, sizeof(password) - 1);
+                    ssid[sizeof(ssid) - 1] = '\0';
+                    password[sizeof(password) - 1] = '\0';
 
                     if (EEPROM_ENABLED) {
                         networkConfig cfg{};
@@ -354,11 +364,7 @@ void RemoteController::run() {
                     disconnect(ip_stack);
                     connectCloud(ip_stack);
                     break;
-
-                case CO2SET:
-                    printf("Received CO2SET locally with value: %u\n", msg.co2set);
-                    break;
-
+                }
                 default:
                     printf("Unknown message type: %d\n", msg.type);
                     break;

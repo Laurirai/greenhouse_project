@@ -14,7 +14,7 @@
 #define DEFAULT_CO2_SET 800
 #define MAX_CO2_SET 5000 // max that's accepted from remote
 
-inline uint16_t co2setpoint;
+inline uint32_t co2setpoint;
 inline bool EEPROM_ENABLED = false;
 
 struct sensorData {
@@ -33,7 +33,6 @@ struct networkConfig {
 enum messageType {
     SENSOR_DATA,
     NETWORK_CONFIG,
-    CO2SET
 };
 
 struct message {
