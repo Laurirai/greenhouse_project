@@ -187,17 +187,13 @@ bool RemoteController::readTalkBackCO2(IPStack &ip_stack) {
     memset(buffer, 0, sizeof(buffer));
 
     snprintf(req, sizeof(req),
-             "POST /talkbacks/%s/commands/execute.json HTTP/1.1\r\n"
+             "GET /talkbacks/%s/commands/execute?api_key=%s HTTP/1.1\r\n"
              "Host: %s\r\n"
-             "Content-Type: application/x-www-form-urlencoded\r\n"
-             "Content-Length: %u\r\n"
              "Connection: close\r\n"
-             "\r\n"
-             "api_key=%s",
+             "\r\n",
              talkback_id,
-             host,
-             (unsigned)(strlen("api_key=") + strlen(talkback_api)),
-             talkback_api);
+             talkback_api,
+             host);
 
     int rv = ip_stack.write((unsigned char*)req, strlen(req));
     if (rv < 0) {
@@ -214,15 +210,15 @@ bool RemoteController::readTalkBackCO2(IPStack &ip_stack) {
     }
 
     buffer[rv] = '\0';
-    printf("TalkBack raw response:\n%s\n", buffer);
+    printf("TalkBack response: %s\n", buffer);
     closeTCP(ip_stack);
 
-    if (strstr(buffer, "401 Unauthorized") != nullptr) {
+    if (strstr(buffer, "HTTP/1.1 401 Unauthorized") != nullptr) {
         printf("TalkBack auth failed. Check TalkBack ID / API key.\n");
         return false;
     }
 
-    if (strstr(buffer, "200 OK") == nullptr) {
+    if (strstr(buffer, "HTTP/1.1 200 OK") == nullptr) {
         printf("TalkBack request failed, ignoring response.\n");
         return false;
     }
@@ -238,9 +234,25 @@ bool RemoteController::readTalkBackCO2(IPStack &ip_stack) {
         body++;
     }
 
+    char *actual_body = body;
+    char *newline = strstr(body, "\r\n");
+
+    if (newline != nullptr) {
+        bool chunk_len = true;
+        for (char *p = body; p < newline; ++p) {
+            if (!isxdigit((unsigned char)*p)) {
+                chunk_len = false;
+                break;
+            }
+        }
+        if (chunk_len) {
+            actual_body = newline + 2;
+        }
+    }
+
     uint32_t co2_value = 0;
-    if (!parseTalkBackCommand(body, co2_value)) {
-        printf("No valid CO2 command found in TalkBack body: %s\n", body);
+    if (!parseTalkBackCommand(actual_body, co2_value)) {
+        printf("No valid CO2 command found in TalkBack body: %s\n", actual_body);
         return false;
     }
 
@@ -254,11 +266,10 @@ bool RemoteController::readTalkBackCO2(IPStack &ip_stack) {
             printf("Failed to save CO2 setpoint to EEPROM.\n");
         }
     }
-
     co2setpoint = co2_value;
-    printf("New CO2 setpoint from TalkBack: %u\n", co2setpoint);
     return true;
 }
+
 void RemoteController::run() {
     IPStack ip_stack;
 
