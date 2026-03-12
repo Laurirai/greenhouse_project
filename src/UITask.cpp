@@ -140,13 +140,13 @@ void UITask::run() {
                     ssid_input[ssid_len++] = CHAR_LIST[char_index];
                     ssid_input[ssid_len] = '\0';
                 }
-                if (ev == BTN_BACK && ssid_len > 0) {  // SW1 = delete last char
+                if (ev == BTN_BACK && ssid_len > 0) {
                     ssid_input[--ssid_len] = '\0';
                 }
-                if (ev == BTN_LEFT) {  // SW2 = save and go back
+                if (ev == BTN_LEFT) {
                     current_screen = ID_SCREEN;
                 }
-                if (ev == BTN_RIGHT) {  // SW0 = discard and go back
+                if (ev == BTN_RIGHT) {
                     memset(ssid_input, 0, sizeof(ssid_input));
                     ssid_len = 0;
                     current_screen = ID_SCREEN;
@@ -160,13 +160,13 @@ void UITask::run() {
                     pass_input[pass_len++] = CHAR_LIST[char_index];
                     pass_input[pass_len] = '\0';
                 }
-                if (ev == BTN_BACK && pass_len > 0) {  // SW1 = delete last char
+                if (ev == BTN_BACK && pass_len > 0) {
                     pass_input[--pass_len] = '\0';
                 }
-                if (ev == BTN_LEFT) {  // SW2 = save and go back
+                if (ev == BTN_LEFT) {
                     current_screen = ID_SCREEN;
                 }
-                if (ev == BTN_RIGHT) {  // SW0 = discard and go back
+                if (ev == BTN_RIGHT) {
                     memset(pass_input, 0, sizeof(pass_input));
                     pass_len = 0;
                     current_screen = ID_SCREEN;
@@ -178,26 +178,39 @@ void UITask::run() {
             display->fill(0);
 
             if (current_screen == MAIN) {
+                // calculate fan speed from current co2 and setpoint
+                uint16_t display_fan = 0;
+                float diff = data.co2_ppm - (float)co2_setpoint;
+                if      (diff <= 0)   display_fan = 0;
+                else if (diff < 400)  display_fan = 20;
+                else if (diff < 800)  display_fan = 40;
+                else if (diff < 1200) display_fan = 60;
+                else if (diff < 1600) display_fan = 80;
+                else                  display_fan = 100;
+
                 snprintf(buf, sizeof(buf), "Auto greenhouse");
                 display->text(buf, 0, 0);
 
-                snprintf(buf, sizeof(buf), "CO2:%1.1fppm", data.co2_ppm);
-                display->text(buf, 0, 15);
+                snprintf(buf, sizeof(buf), "CO2:%4.0fppm", data.co2_ppm);
+                display->text(buf, 0, 10);
 
-                snprintf(buf, sizeof(buf), "RH: %1.1f%%", data.rh);
-                display->text(buf, 0, 25);
+                snprintf(buf, sizeof(buf), "RH: %4.1f%%", data.rh);
+                display->text(buf, 0, 19);
 
-                snprintf(buf, sizeof(buf), "T:  %1.1fC", data.temp);
-                display->text(buf, 0, 35);
+                snprintf(buf, sizeof(buf), "T:  %4.1fC", data.temp);
+                display->text(buf, 0, 28);
 
-                snprintf(buf, sizeof(buf), "P:  %1.1fPa", data.pressure);
-                display->text(buf, 0, 45);
+                snprintf(buf, sizeof(buf), "P:  %4.1fPa", data.pressure);
+                display->text(buf, 0, 37);
+
+                snprintf(buf, sizeof(buf), "Fan:%3u%%", display_fan);
+                display->text(buf, 0, 46);
 
                 snprintf(buf, sizeof(buf), "SET");
-                display->text(buf, 95, 30);
+                display->text(buf, 95, 20);
 
                 snprintf(buf, sizeof(buf), "%sval", main_selected == 0 ? "*" : " ");
-                display->text(buf, 90, 40);
+                display->text(buf, 90, 36);
 
                 snprintf(buf, sizeof(buf), "%sId", main_selected == 1 ? "*" : " ");
                 display->text(buf, 90, 50);
@@ -255,7 +268,7 @@ void UITask::run() {
                 snprintf(buf, sizeof(buf), "ENC=add SW1=del");
                 display->text(buf, 0, 48);
 
-                snprintf(buf, sizeof(buf), "SW2=save SW0=discard");
+                snprintf(buf, sizeof(buf), "SW2=save SW0=disc");
                 display->text(buf, 0, 57);
             }
 

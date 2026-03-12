@@ -55,13 +55,6 @@ int main() {
 
     static RemoteController remote_controller(eeprom, receive_queue, co2_que);
 
-    message msg{};
-    msg.type = NETWORK_CONFIG;
-    strncpy(msg.network_config.ssid, "Kelarotta", sizeof(msg.network_config.ssid) - 1);
-    strncpy(msg.network_config.password, "kelarotta123", sizeof(msg.network_config.password) - 1);
-    msg.network_config.ssid[sizeof(msg.network_config.ssid) - 1] = '\0';
-    msg.network_config.password[sizeof(msg.network_config.password) - 1] = '\0';
-    xQueueSendToBack(receive_queue, &msg, pdMS_TO_TICKS(10));
 
     static SensorTask   sensorTask(uiQueue, controlQueue, modbus, modbusMutex, shared_i2c);
     static InputHandler inputHandler;
