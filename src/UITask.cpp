@@ -98,19 +98,14 @@ void UITask::run() {
                         co2_setpoint = MIN_CO2_SET;
                 }
                 if (ev == ENC_PRESS) {
-                    if (EEPROM_ENABLED) {
                         if (eeprom.saveCO2Setpoint(co2_setpoint)) {
                             printf("CO2 setpoint saved: %u ppm\n", co2_setpoint);
                         } else {
                             printf("Failed to save CO2 setpoint.\n");
                         }
-                    } else {
-                        printf("EEPROM disabled, runtime CO2 setpoint now: %u ppm\n", co2_setpoint);
-                    }
                     current_screen = MAIN;
                 }
                 if (ev == BTN_BACK) {
-                    if (EEPROM_ENABLED) {
                         uint32_t stored = DEFAULT_CO2_SET;
                         if (eeprom.loadCO2Setpoint(stored) &&
                             stored >= MIN_CO2_SET &&
@@ -119,9 +114,7 @@ void UITask::run() {
                         } else {
                             co2_setpoint = DEFAULT_CO2_SET;
                         }
-                    } else {
-                        co2_setpoint = DEFAULT_CO2_SET;
-                    }
+
                     current_screen = MAIN;
                 }
             }
