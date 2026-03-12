@@ -25,10 +25,12 @@ void UITask::run() {
     bool needs_redraw = true;
 
     int main_selected = 0;
-    if (eeprom.loadCO2Setpoint(co2_setpoint)) {
+    uint32_t lc2 = 0;
+    if (eeprom.loadCO2Setpoint(lc2)) {
         printf("Loaded co2 from eeprom with value: %u\n");
         if (co2_setpoint >= MIN_CO2_SET && co2_setpoint <= MAX_CO2_SET) {
             printf("Read saved CO2 setpoint from EEPROM: %u\n", co2_setpoint);
+            co2_setpoint = lc2;
         } else {
             printf("Trash CO2 setpoint in EEPROM, setting to default of %u\n", DEFAULT_CO2_SET);
             co2_setpoint = DEFAULT_CO2_SET;
