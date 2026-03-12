@@ -3,7 +3,8 @@
 #include <cstdio>
 #include <cstring>
 
-static const char CHAR_LIST[] = "abcdefghijklmnopqrstuvwxyz0123456789!@#$%&*()-_";
+static const char CHAR_LIST[] =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*()-_ .";
 static const int  CHAR_COUNT  = sizeof(CHAR_LIST) - 1;
 
 UITask::UITask(QueueHandle_t uiQueue, QueueHandle_t inputQueue,
@@ -13,7 +14,7 @@ UITask::UITask(QueueHandle_t uiQueue, QueueHandle_t inputQueue,
       eeprom(eeprom), i2c(i2c), networkQueue(networkQueue) {}
 
 void UITask::start() {
-    xTaskCreate(taskFunction, "UI", 2048, this, 1, NULL);
+    xTaskCreate(taskFunction, "UI", 4096, this, 1, NULL);
 }
 
 void UITask::taskFunction(void* param) {
@@ -62,7 +63,7 @@ void UITask::run() {
             needs_redraw = true;
         }
 
-        if (xQueueReceive(inputQueue, &ev, 0) == pdTRUE) {
+        while (xQueueReceive(inputQueue, &ev, 0) == pdTRUE) {
             needs_redraw = true;
 
             if (current_screen == MAIN) {
@@ -276,6 +277,6 @@ void UITask::run() {
             needs_redraw = false;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
