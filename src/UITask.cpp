@@ -5,7 +5,7 @@
 
 static const char CHAR_LIST[] =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*()-_ .";
-static const int CHAR_COUNT = sizeof(CHAR_LIST) - 1;
+static const int  CHAR_COUNT  = sizeof(CHAR_LIST) - 1;
 
 UITask::UITask(QueueHandle_t uiQueue, QueueHandle_t inputQueue,
                EEPROMManager &eeprom, std::shared_ptr<PicoI2C> i2c,
@@ -14,7 +14,7 @@ UITask::UITask(QueueHandle_t uiQueue, QueueHandle_t inputQueue,
       eeprom(eeprom), i2c(i2c), networkQueue(networkQueue) {}
 
 void UITask::start() {
-    xTaskCreate(taskFunction, "UI", 2048, this, 1, NULL);
+    xTaskCreate(taskFunction, "UI", 4096, this, tskIDLE_PRIORITY+3, NULL);
 }
 
 void UITask::taskFunction(void* param) {
@@ -219,10 +219,7 @@ void UITask::run() {
                 display->text(buf, 0, 46);
 
                 snprintf(buf, sizeof(buf), "SET");
-                display->text(buf, 95, 10);
-
-                snprintf(buf, sizeof(buf), "%4uppm", co2_setpoint);
-                display->text(buf, 85, 20);
+                display->text(buf, 95, 20);
 
                 snprintf(buf, sizeof(buf), "%sval", main_selected == 0 ? "*" : " ");
                 display->text(buf, 90, 36);
@@ -291,6 +288,6 @@ void UITask::run() {
             needs_redraw = false;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
 }

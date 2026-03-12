@@ -10,9 +10,9 @@
 #define DATA_INTERVAL 60            // seconds
 #define TALKBACK_INTERVAL 5         // seconds
 #define NETWORK_ATTEMPT_COUNT 3
-#define MIN_CO2_SET 200             // min that's accepted from remote
+#define MIN_CO2_SET 200 // min that's accepted from remote
 #define DEFAULT_CO2_SET 800
-#define MAX_CO2_SET 5000            // spec max
+#define MAX_CO2_SET 5000 // max that's accepted from remote
 
 inline uint32_t co2setpoint = DEFAULT_CO2_SET;
 inline bool EEPROM_ENABLED = false;

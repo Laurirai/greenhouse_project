@@ -8,7 +8,7 @@ SensorTask::SensorTask(QueueHandle_t uiQueue, QueueHandle_t controlQueue,
       modbus(modbus), modbusMutex(modbusMutex), i2c(i2c), receive_queue(rcq) {}
 
 void SensorTask::start() {
-    xTaskCreate(taskFunction, "Sensor", 1024, this, 2, NULL);
+    xTaskCreate(taskFunction, "Sensor", 2048, this, tskIDLE_PRIORITY+2, NULL);
 }
 
 void SensorTask::taskFunction(void* param) {
@@ -27,7 +27,6 @@ void SensorTask::run() {
     while (true) {
         sensorData d{};
         SensorData data{};
-        bool modbus_ok = false;
 
         if (xSemaphoreTake(modbusMutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
             data.co2_ppm = co2_reg->read();
@@ -36,36 +35,21 @@ void SensorTask::run() {
             vTaskDelay(pdMS_TO_TICKS(10));
             data.temp = temp_reg->read() / 10.0f;
             xSemaphoreGive(modbusMutex);
-
-            modbus_ok = true;
         }
-
-        if (!modbus_ok) {
-            printf("SensorTask: Modbus read timed out, skipping sample.\n");
-            vTaskDelay(pdMS_TO_TICKS(2000));
-            continue;
-        }
-
-        data.pressure = (float)pressure_sensor->read();
-
-        d.co2 = static_cast<uint16_t>(data.co2_ppm);
+        d.co2 = data.co2_ppm;
         d.humidity = data.rh;
         d.temperature = data.temp;
-        d.co2sp = static_cast<uint16_t>(co2setpoint);
+        d.co2sp = co2setpoint;
+        message msg {.type = SENSOR_DATA, .data = d};
 
-        message msg{};
-        msg.type = SENSOR_DATA;
-        msg.data = d;
+        data.pressure = pressure_sensor->read();
 
-        printf("CO2:%.0f RH:%.1f T:%.1f P:%.2f SP:%u\n",
-               data.co2_ppm, data.rh, data.temp, data.pressure, co2setpoint);
+        printf("CO2:%.0f RH:%.1f T:%.1f P:%.2f\n",
+               data.co2_ppm, data.rh, data.temp, data.pressure);
 
-        xQueueSend(receive_queue, &msg, 0) != pdTRUE;
-
-        xQueueSend(uiQueue, &data, 0) != pdTRUE;
-
-        xQueueSend(controlQueue, &data, 0) != pdTRUE;
-
+        xQueueSend(receive_queue, &msg, 0);
+        xQueueSend(uiQueue, &data, 0);
+        xQueueSend(controlQueue, &data, 0);
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }

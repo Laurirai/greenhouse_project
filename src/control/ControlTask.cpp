@@ -10,7 +10,7 @@ ControlTask::ControlTask(QueueHandle_t controlQueue, EEPROMManager &eeprom,
       modbus(modbus), modbusMutex(modbusMutex) {}
 
 void ControlTask::start() {
-    xTaskCreate(taskFunction, "Control", 1024, this, 2, NULL);
+    xTaskCreate(taskFunction, "Control", 2048, this, tskIDLE_PRIORITY+2, NULL);
 }
 
 void ControlTask::taskFunction(void* param) {
