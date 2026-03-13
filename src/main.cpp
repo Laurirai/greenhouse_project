@@ -1,7 +1,5 @@
 #include <iostream>
 #include <sstream>
-#include <cstring>
-
 #include "FreeRTOS.h"
 #include "task.h"
 #include "hardware/gpio.h"
