@@ -22,14 +22,38 @@ RemoteController::RemoteController(EEPROMManager &eeprom_, QueueHandle_t rcq)
             password[sizeof(password) - 1] = '\0';
 
             if (strlen(ssid) >= 2 && strlen(password) >= 8) {
-                printf("Read SSID from eeprom: %s and pass: %s \n", ssid, password);
+                printf("Read SSID from eeprom: %s\n", ssid);
             } else {
-                printf("Trash data in EEPROM for SSID/pass, ignoring.\n");
+                printf("Trash data in EEPROM for SSID/pass, clearing stored creds.\n");
+
                 memset(ssid, 0, sizeof(ssid));
                 memset(password, 0, sizeof(password));
+
+                networkConfig empty_cfg{};
+                if (!eeprom.saveNetworkConfig(empty_cfg)) {
+                    printf("Failed to clear bad credentials from EEPROM.\n");
+                }
             }
         } else {
             printf("Failed to read creds from eeprom\n");
+        }
+
+        uint32_t loaded_co2 = 0;
+        if (eeprom.loadCO2Setpoint(loaded_co2)) {
+            if (loaded_co2 >= MIN_CO2_SET && loaded_co2 <= MAX_CO2_SET) {
+                co2setpoint = loaded_co2;
+                printf("Loaded CO2 setpoint from EEPROM: %u\n", co2setpoint);
+            } else {
+                printf("Invalid CO2 setpoint in EEPROM, restoring default.\n");
+                co2setpoint = DEFAULT_CO2_SET;
+
+                if (!eeprom.saveCO2Setpoint(co2setpoint)) {
+                    printf("Failed to restore default CO2 setpoint to EEPROM.\n");
+                }
+            }
+        } else {
+            printf("Failed to read CO2 setpoint from EEPROM.\n");
+            co2setpoint = DEFAULT_CO2_SET;
         }
     }
 
