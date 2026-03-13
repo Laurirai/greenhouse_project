@@ -361,6 +361,7 @@ void RemoteController::run() {
         if (got_msg) {
             switch (msg.type) {
                 case SENSOR_DATA:
+                    printf("Received sensor data.\n");
                     if (cloudConnected && ip_stack.WiFi_connected()) {
                         if ((now - last_send) >= send_period || first_send) {
                             msg.data.co2sp = static_cast<uint16_t>(co2setpoint);
