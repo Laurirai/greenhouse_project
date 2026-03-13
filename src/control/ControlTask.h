@@ -16,6 +16,14 @@ public:
                 std::shared_ptr<ModbusClient> modbus, SemaphoreHandle_t modbusMutex);
     void start();
 private:
+    bool co2ValveOpen;
+    TickType_t co2ValveOpenedAt;
+    TickType_t co2ValveLastOpen;
+
+    void initCO2Valve();
+    void openCO2Valve();
+    void closeCO2Valve();
+    void updateCO2Valve(float co2, uint16_t setpoint);
     static void taskFunction(void* param);
     void run();
 

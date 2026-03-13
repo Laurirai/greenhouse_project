@@ -8,7 +8,7 @@
 #include <cstdint>
 
 #define DATA_INTERVAL 60            // seconds
-#define TALKBACK_INTERVAL 5         // seconds
+#define TALKBACK_INTERVAL 10         // seconds
 #define NETWORK_ATTEMPT_COUNT 3
 #define MIN_CO2_SET 200             // min that's accepted from remote
 #define DEFAULT_CO2_SET 800
