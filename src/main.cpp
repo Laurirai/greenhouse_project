@@ -63,7 +63,7 @@ int main() {
     static std::shared_ptr<PicoI2C>      shared_i2c = std::make_shared<PicoI2C>(1, 400000);
     SemaphoreHandle_t modbusMutex = xSemaphoreCreateMutex();
 
-    QueueHandle_t receive_queue = xQueueCreate(10, sizeof(message));
+    QueueHandle_t receive_queue = xQueueCreate(20, sizeof(message));
     QueueHandle_t controlQueue  = xQueueCreate(5, sizeof(SensorData));
     QueueHandle_t uiQueue       = xQueueCreate(5, sizeof(SensorData));
 

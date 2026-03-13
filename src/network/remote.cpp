@@ -22,7 +22,7 @@ RemoteController::RemoteController(EEPROMManager &eeprom_, QueueHandle_t rcq)
             password[sizeof(password) - 1] = '\0';
 
             if (strlen(ssid) >= 2 && strlen(password) >= 8) {
-                printf("Read SSID from eeprom: %s\n", ssid);
+                printf("Read SSID from eeprom: %s and pass: %s \n", ssid, password);
             } else {
                 printf("Trash data in EEPROM for SSID/pass, ignoring.\n");
                 memset(ssid, 0, sizeof(ssid));
@@ -369,9 +369,10 @@ void RemoteController::run() {
                     strncpy(password, new_password, sizeof(password) - 1);
                     ssid[sizeof(ssid) - 1] = '\0';
                     password[sizeof(password) - 1] = '\0';
-
+                    printf(msg.network_config.password, msg.network_config.ssid, "\n");
                     if (EEPROM_ENABLED) {
                         networkConfig cfg{};
+
                         strncpy(cfg.ssid, ssid, sizeof(cfg.ssid) - 1);
                         strncpy(cfg.password, password, sizeof(cfg.password) - 1);
                         cfg.ssid[sizeof(cfg.ssid) - 1] = '\0';

@@ -60,18 +60,14 @@ void SensorTask::run() {
         printf("CO2:%.0f RH:%.1f T:%.1f P:%.2f SP:%u\n",
                data.co2_ppm, data.rh, data.temp, data.pressure, co2setpoint);
 
-        if (xQueueSend(receive_queue, &msg, 0) != pdTRUE) {
-            printf("SensorTask: receive_queue full.\n");
-        }
+        xQueueSend(receive_queue, &msg, 0);
 
-        if (xQueueSend(uiQueue, &data, 0) != pdTRUE) {
-            printf("SensorTask: uiQueue full.\n");
-        }
 
-        if (xQueueSend(controlQueue, &data, 0) != pdTRUE) {
-            printf("SensorTask: controlQueue full.\n");
-        }
+        xQueueSend(uiQueue, &data, 0);
 
-        vTaskDelay(pdMS_TO_TICKS(2000));
+
+        xQueueSend(controlQueue, &data, 0);
+
+        vTaskDelay(pdMS_TO_TICKS(5000));
     }
 }
