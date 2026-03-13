@@ -46,7 +46,6 @@ struct message {
 
 
 inline uint16_t calculateFanSpeed(uint16_t co2, uint32_t setpoint) {
-    if (co2 > setpoint) return 100;
     float diff = (float)co2 - (float)setpoint;
     if (diff <= 0)   return 0;
     if (diff < 400)  return 20;
