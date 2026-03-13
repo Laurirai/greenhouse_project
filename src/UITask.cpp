@@ -244,7 +244,7 @@ void UITask::run() {
 
             else if (current_screen == ID_SCREEN) {
                 snprintf(buf, sizeof(buf), "Wifi set up");
-                display->text(buf, 0, 0);
+                display->text(buf, 10, 0);
 
                 snprintf(buf, sizeof(buf), "%sset name", id_selected == 0 ? "*" : " ");
                 display->text(buf, 20, 18);
@@ -256,10 +256,10 @@ void UITask::run() {
                 display->text(buf, 20, 42);
 
                 snprintf(buf, sizeof(buf), "N:%s", ssid_len > 0 ? "ok" : "--");
-                display->text(buf, 0, 55);
+                display->text(buf, 10, 55);
 
                 snprintf(buf, sizeof(buf), "P:%s", pass_len > 0 ? "ok" : "--");
-                display->text(buf, 40, 55);
+                display->text(buf, 50, 55);
             }
 
             else if (current_screen == SET_NAME || current_screen == SET_PASS) {
