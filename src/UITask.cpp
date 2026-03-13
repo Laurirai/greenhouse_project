@@ -219,13 +219,13 @@ void UITask::run() {
                 display->text(buf, 0, 46);
 
                 snprintf(buf, sizeof(buf), "SET");
-                display->text(buf, 95, 20);
+                display->text(buf, 95, 25);
 
                 snprintf(buf, sizeof(buf), "%sval", main_selected == 0 ? "*" : " ");
-                display->text(buf, 90, 36);
+                display->text(buf, 90, 35);
 
                 snprintf(buf, sizeof(buf), "%sId", main_selected == 1 ? "*" : " ");
-                display->text(buf, 90, 50);
+                display->text(buf, 90, 45);
             }
 
             else if (current_screen == VALUE_SET) {
